@@ -26,6 +26,7 @@ seaborn==0.12.2
 # HTTP请求
 requests==2.31.0
 httpx==0.25.2
+aiohttp==3.9.1
 
 # 工具库
 python-dotenv==1.0.0

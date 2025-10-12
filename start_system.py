@@ -6,18 +6,22 @@ import subprocess
 import time
 import os
 import sys
+from config import config
 
 def start_backend():
     """启动后端服务"""
     print("🚀 启动后端服务...")
     backend_dir = os.path.join(os.getcwd(), "backend")
     try:
-        # 启动后端服务
-        process = subprocess.Popen(
-            [sys.executable, "main.py"],
-            cwd=backend_dir,
-            creationflags=subprocess.CREATE_NEW_CONSOLE
-        )
+        # 启动后端服务 - 使用Windows的start命令打开新窗口
+        if os.name == 'nt':  # Windows
+            cmd = f'start "Backend Server" cmd /k "cd /d {backend_dir} && python main.py"'
+            process = subprocess.Popen(cmd, shell=True)
+        else:  # Linux/Mac
+            process = subprocess.Popen(
+                [sys.executable, "main.py"],
+                cwd=backend_dir
+            )
         print("✅ 后端服务已启动 (端口8000)")
         return process
     except Exception as e:
@@ -27,13 +31,17 @@ def start_backend():
 def start_frontend():
     """启动前端服务"""
     print("🚀 启动前端服务...")
+    frontend_dir = os.path.join(os.getcwd(), "frontend")
     try:
-        # 启动前端服务
-        process = subprocess.Popen(
-            [sys.executable, "start_server.py"],
-            cwd=os.getcwd(),
-            creationflags=subprocess.CREATE_NEW_CONSOLE
-        )
+        # 启动前端服务 - 使用Windows的start命令打开新窗口
+        if os.name == 'nt':  # Windows
+            cmd = f'start "Frontend Server" cmd /k "cd /d {frontend_dir} && python start_server.py"'
+            process = subprocess.Popen(cmd, shell=True)
+        else:  # Linux/Mac
+            process = subprocess.Popen(
+                [sys.executable, "start_server.py"],
+                cwd=frontend_dir
+            )
         print("✅ 前端服务已启动 (端口3000)")
         return process
     except Exception as e:
@@ -54,6 +62,10 @@ def check_gee_auth():
 
 def main():
     """主函数"""
+    # 设置代理和API密钥
+    config.setup_proxy()
+    config.setup_openai_key()
+    
     print("=" * 60)
     print("🚀 数据中心智能选址与能源优化系统")
     print("=" * 60)

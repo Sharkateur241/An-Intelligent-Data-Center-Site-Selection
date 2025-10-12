@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import './App.css';
 
 interface AnalysisData {
@@ -11,9 +12,28 @@ interface AnalysisData {
   power_supply_analysis: any;
   energy_storage_analysis: any;
   promethee_mcgp_analysis: any;
+  // AI分析结果
+  ai_multimodal_analysis?: any;
+  ai_energy_analysis?: any;
+  ai_power_supply_analysis?: any;
+  ai_energy_storage_analysis?: any;
+  ai_decision_analysis?: any;
 }
 
 const App: React.FC = () => {
+  const [analysisMode, setAnalysisMode] = useState<'basic' | 'temporal' | 'custom' | 'multi-dimension'>('basic');
+  const [customMetrics, setCustomMetrics] = useState<string[]>(['土地平整度', '交通便利性', '环境安全性']);
+  const [customWeights, setCustomWeights] = useState<{[key: string]: number}>({
+    '土地平整度': 0.4,
+    '交通便利性': 0.3,
+    '环境安全性': 0.3
+  });
+  const [multiDimensions, setMultiDimensions] = useState<{[key: string]: string[]}>({
+    '土地利用': ['空地比例', '土地平整度', '可用面积'],
+    '环境条件': ['气候适宜性', '自然灾害风险', '环境敏感区'],
+    '基础设施': ['交通便利性', '电网接入', '通信覆盖']
+  });
+
   // 添加内联样式
   const styles = `
     .custom-input-section {
@@ -194,11 +214,13 @@ const App: React.FC = () => {
         setAnalysisData(data);
         alert('分析完成！');
       } else {
-        throw new Error('分析失败');
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`分析失败 (${response.status}): ${errorText}`);
       }
     } catch (error) {
-      alert('分析失败，请重试');
       console.error('Analysis error:', error);
+      alert(`分析失败: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -214,8 +236,39 @@ const App: React.FC = () => {
         {/* 自定义坐标输入区域 */}
         <div className="custom-input-section">
           <h3 style={{ margin: '0 0 20px 0', color: '#fff', textAlign: 'center', fontSize: '18px' }}>
-            🎯 自定义选址分析
+            🎯 智能分析模式
           </h3>
+          
+          {/* 分析模式选择 */}
+          <div className="mode-selection">
+            <h4 style={{ color: '#fff', marginBottom: '15px' }}>选择分析模式：</h4>
+            <div className="mode-buttons">
+              <button 
+                className={`mode-button ${analysisMode === 'basic' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('basic')}
+              >
+                🤖 基础AI分析
+              </button>
+              <button 
+                className={`mode-button ${analysisMode === 'temporal' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('temporal')}
+              >
+                📅 时间序列分析
+              </button>
+              <button 
+                className={`mode-button ${analysisMode === 'custom' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('custom')}
+              >
+                📊 自定义指标
+              </button>
+              <button 
+                className={`mode-button ${analysisMode === 'multi-dimension' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('multi-dimension')}
+              >
+                🎯 多维度分析
+              </button>
+            </div>
+          </div>
           
           <div className="input-row">
             <div className="input-group">
@@ -348,106 +401,193 @@ const App: React.FC = () => {
                 </p>
               </div>
 
-              <div className="result-section">
-                <h3>🏗️ 土地利用分析</h3>
-                <div className="result-content">
-                  <p><strong>总面积:</strong> {analysisData.land_analysis.total_area?.toLocaleString()} 平方米</p>
-                  <p><strong>分析日期:</strong> {new Date(analysisData.land_analysis.analysis_date).toLocaleString()}</p>
+
+              {/* 土地利用分析 - 显示总面积 */}
+              {analysisData.land_analysis && (
+                <div className="result-section">
+                  <h3>🏗️ 土地利用分析</h3>
+                  <div className="result-content">
+                    <p><strong>总面积:</strong> {analysisData.land_analysis.land_use_analysis?.total_area?.toLocaleString() || '计算中...'} 平方米</p>
+                    <p><strong>分析日期:</strong> {analysisData.land_analysis.analysis_date ? new Date(analysisData.land_analysis.analysis_date).toLocaleString() : '未知'}</p>
+                    {analysisData.land_analysis.land_use_analysis?.land_cover_distribution && (
+                      <div>
+                        <p><strong>土地利用分布:</strong></p>
+                        <ul>
+                          {Object.entries(analysisData.land_analysis.land_use_analysis.land_cover_distribution).map(([key, value]) => (
+                            <li key={key}>{key}: {((value as number) * 100).toFixed(1)}%</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+
+        {/* AI多模态分析 - 主要分析结果 */}
+        {analysisData.ai_multimodal_analysis && (
+          <div className="result-section ai-primary">
+            <h3>🤖 AI智能分析（主要结果）</h3>
+            <div className="result-content">
+              <div className="ai-analysis">
+                <h4>AI土地利用与环境分析</h4>
+                <div className="ai-content">
+                  {analysisData.ai_multimodal_analysis.success ? (
+                    <div>
+                      <p><strong>分析状态:</strong> ✅ 成功</p>
+                      <p><strong>分析时间:</strong> {analysisData.ai_multimodal_analysis.timestamp}</p>
+                      <div className="ai-insights">
+                        <h5>🎯 AI智能洞察:</h5>
+                        <div className="markdown-content" style={{ 
+                          background: '#f5f5f5', 
+                          padding: '15px', 
+                          borderRadius: '8px', 
+                          marginTop: '10px'
+                        }}>
+                          <ReactMarkdown>{analysisData.ai_multimodal_analysis.analysis || analysisData.ai_multimodal_analysis.analysis_result || '暂无分析结果'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="error">AI分析失败: {analysisData.ai_multimodal_analysis.error}</p>
+                  )}
                 </div>
               </div>
-
-              <div className="result-section">
-                <h3>⚡ 能源资源评估</h3>
-                <div className="result-content">
-                  <p><strong>太阳能年辐射量:</strong> {analysisData.energy_assessment.solar_data?.annual_irradiance} kWh/m²</p>
-                  <p><strong>平均风速:</strong> {analysisData.energy_assessment.wind_data?.average_speed} m/s</p>
-                  <p><strong>可再生能源覆盖率:</strong> {(analysisData.energy_assessment.storage_assessment?.renewable_coverage * 100)?.toFixed(1)}%</p>
-                </div>
-              </div>
-
-              <div className="result-section">
-                <h3>🌍 地理环境分析</h3>
-                <div className="result-content">
-                  <p><strong>海拔:</strong> {analysisData.geographic_environment?.elevation} 米</p>
-                  <p><strong>森林覆盖率:</strong> {analysisData.geographic_environment?.forest_coverage}%</p>
-                  <p><strong>气候带:</strong> {analysisData.geographic_environment?.climate_zone}</p>
-                  <p><strong>水资源:</strong> {analysisData.geographic_environment?.water_resources?.total_capacity}</p>
-                </div>
-              </div>
-
-              <div className="result-section">
-                <h3>🎯 决策分析</h3>
-                <div className="result-content">
-                  <p><strong>综合评分:</strong> {analysisData.decision_recommendation.overall_score?.score} 分</p>
-                  <p><strong>决策等级:</strong> {analysisData.decision_recommendation.decision_level}</p>
-                  <p><strong>风险等级:</strong> {analysisData.decision_recommendation.risk_assessment?.risk_level}</p>
-                </div>
-              </div>
-
-              <div className="result-section">
-                <h3>🌡️ 余热利用分析</h3>
-                <div className="result-content">
-                  <p><strong>可回收热量:</strong> {analysisData.heat_utilization.recoverable_heat_mw} MW</p>
-                  <p><strong>年收益:</strong> {analysisData.heat_utilization.economic_benefits?.annual_revenue?.toLocaleString()} 元</p>
-                  <p><strong>投资回收期:</strong> {analysisData.heat_utilization.economic_benefits?.payback_period} 年</p>
-                </div>
-              </div>
-
-        {/* 供电方案分析 */}
-        <div className="result-section">
-          <h3>🔌 供电方案分析</h3>
-          <div className="result-content">
-            {analysisData.power_supply_analysis?.recommended_options?.map((option: any, index: number) => (
-              <div key={index} className="option-item">
-                <h4>{option.name}</h4>
-                <p>装机容量: {option.capacity?.toFixed(1)} MW</p>
-                <p>效率: {(option.efficiency * 100)?.toFixed(1)}%</p>
-                <p>适用性评分: {(option.suitability_score * 100)?.toFixed(1)}%</p>
-                <p>{option.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 储能布局分析 */}
-        <div className="result-section">
-          <h3>🔋 储能布局分析</h3>
-          <div className="result-content">
-            {analysisData.energy_storage_analysis?.available_options?.map((option: any, index: number) => (
-              <div key={index} className="option-item">
-                <h4>{option.name}</h4>
-                <p>储能容量: {option.capacity?.toFixed(1)} MWh</p>
-                <p>功率: {option.power?.toFixed(1)} MW</p>
-                <p>效率: {(option.efficiency * 100)?.toFixed(1)}%</p>
-                <p>适用性评分: {(option.suitability_score * 100)?.toFixed(1)}%</p>
-                <p>{option.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* PROMETHEE-MCGP决策分析 */}
-        <div className="result-section">
-          <h3>🧠 PROMETHEE-MCGP决策分析</h3>
-          <div className="result-content">
-            <div className="decision-summary">
-              <h4>综合评分: {analysisData.promethee_mcgp_analysis?.final_ranking?.final_score}</h4>
-              <p>等级: {analysisData.promethee_mcgp_analysis?.final_ranking?.level}</p>
-              <p>推荐: {analysisData.promethee_mcgp_analysis?.final_ranking?.recommendation}</p>
-            </div>
-            <div className="economic-analysis">
-              <h4>经济因素分析</h4>
-              <p>评分: {analysisData.promethee_mcgp_analysis?.economic_analysis?.ranking?.score}</p>
-              <p>等级: {analysisData.promethee_mcgp_analysis?.economic_analysis?.ranking?.level}</p>
-            </div>
-            <div className="recommendations">
-              <h4>建议</h4>
-              {analysisData.promethee_mcgp_analysis?.recommendation?.recommendations?.map((rec: string, index: number) => (
-                <p key={index}>• {rec}</p>
-              ))}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* AI能源分析 - 主要能源评估 */}
+        {analysisData.ai_energy_analysis && (
+          <div className="result-section ai-primary">
+            <h3>⚡ AI能源资源评估（主要结果）</h3>
+            <div className="result-content">
+              <div className="ai-analysis">
+                <h4>AI能源潜力分析</h4>
+                <div className="ai-content">
+                  {analysisData.ai_energy_analysis.success ? (
+                    <div>
+                      <p><strong>分析状态:</strong> ✅ 成功</p>
+                      <p><strong>分析时间:</strong> {analysisData.ai_energy_analysis.timestamp}</p>
+                      <div className="ai-insights">
+                        <h5>⚡ 能源评估:</h5>
+                        <div className="markdown-content" style={{
+                          background: '#f5f5f5', 
+                          padding: '15px', 
+                          borderRadius: '8px', 
+                          marginTop: '10px'
+                        }}>
+                          <ReactMarkdown>{analysisData.ai_energy_analysis.analysis || analysisData.ai_energy_analysis.analysis_result || '暂无分析结果'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="error">AI能源分析失败: {analysisData.ai_energy_analysis.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI供电分析 - 主要供电方案 */}
+        {analysisData.ai_power_supply_analysis && (
+          <div className="result-section ai-primary">
+            <h3>🔌 AI供电方案（主要结果）</h3>
+            <div className="result-content">
+              <div className="ai-analysis">
+                <h4>AI供电策略评估</h4>
+                <div className="ai-content">
+                  {analysisData.ai_power_supply_analysis.success ? (
+                    <div>
+                      <p><strong>分析状态:</strong> ✅ 成功</p>
+                      <p><strong>分析时间:</strong> {analysisData.ai_power_supply_analysis.timestamp}</p>
+                      <div className="ai-insights">
+                        <h5>🔌 供电建议:</h5>
+                        <div className="markdown-content" style={{
+                          background: '#f5f5f5', 
+                          padding: '15px', 
+                          borderRadius: '8px', 
+                          marginTop: '10px'
+                        }}>
+                          <ReactMarkdown>{analysisData.ai_power_supply_analysis.analysis || analysisData.ai_power_supply_analysis.analysis_result || '暂无分析结果'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="error">AI供电分析失败: {analysisData.ai_power_supply_analysis.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI储能分析 - 主要储能方案 */}
+        {analysisData.ai_energy_storage_analysis && (
+          <div className="result-section ai-primary">
+            <h3>🔋 AI储能方案（主要结果）</h3>
+            <div className="result-content">
+              <div className="ai-analysis">
+                <h4>AI储能策略评估</h4>
+                <div className="ai-content">
+                  {analysisData.ai_energy_storage_analysis.success ? (
+                    <div>
+                      <p><strong>分析状态:</strong> ✅ 成功</p>
+                      <p><strong>分析时间:</strong> {analysisData.ai_energy_storage_analysis.timestamp}</p>
+                      <div className="ai-insights">
+                        <h5>🔋 储能建议:</h5>
+                        <div className="markdown-content" style={{
+                          background: '#f5f5f5', 
+                          padding: '15px', 
+                          borderRadius: '8px', 
+                          marginTop: '10px'
+                        }}>
+                          <ReactMarkdown>{analysisData.ai_energy_storage_analysis.analysis || analysisData.ai_energy_storage_analysis.analysis_result || '暂无分析结果'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="error">AI储能分析失败: {analysisData.ai_energy_storage_analysis.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI决策分析 - 主要决策建议 */}
+        {analysisData.ai_decision_analysis && (
+          <div className="result-section ai-primary">
+            <h3>🎯 AI综合决策（主要结果）</h3>
+            <div className="result-content">
+              <div className="ai-analysis">
+                <h4>AI智能决策建议</h4>
+                <div className="ai-content">
+                  {analysisData.ai_decision_analysis.success ? (
+                    <div>
+                      <p><strong>分析状态:</strong> ✅ 成功</p>
+                      <p><strong>分析时间:</strong> {analysisData.ai_decision_analysis.timestamp}</p>
+                      <div className="ai-insights">
+                        <h5>🎯 决策建议:</h5>
+                        <div className="markdown-content" style={{ 
+                          background: '#f5f5f5', 
+                          padding: '15px', 
+                          borderRadius: '8px', 
+                          marginTop: '10px'
+                        }}>
+                          <ReactMarkdown>{analysisData.ai_decision_analysis.analysis || analysisData.ai_decision_analysis.analysis_result || '暂无分析结果'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="error">AI决策分析失败: {analysisData.ai_decision_analysis.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
             </div>
           </div>
         )}

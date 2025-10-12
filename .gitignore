@@ -1,3 +1,11 @@
+# 环境配置文件
+.env
+*.env
+
+# GEE 认证文件
+gee_service_account_key.json
+*.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -21,7 +29,7 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# 虚拟环境
 venv/
 env/
 ENV/
@@ -35,7 +43,7 @@ venv.bak/
 *.swo
 *~
 
-# OS
+# 操作系统
 .DS_Store
 .DS_Store?
 ._*
@@ -44,55 +52,48 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# React Build
-frontend/build/
-frontend/dist/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# GEE credentials
-.ee_credentials
-ee_credentials.json
-
-# Logs
+# 日志文件
 *.log
 logs/
 
-# Temporary files
+# 临时文件
 *.tmp
 *.temp
+temp/
+tmp/
 
-# Database
+# 测试文件
+test_*.py
+test_*.bat
+test_*.html
+
+# 备份文件
+*.bak
+*.backup
+
+# 数据库
 *.db
+*.sqlite
 *.sqlite3
 
-# Jupyter Notebook
-.ipynb_checkpoints/
+# 缓存
+.cache/
+.pytest_cache/
 
-# Docker
-.dockerignore
-
-# Coverage reports
+# 覆盖率报告
 htmlcov/
 .coverage
 .coverage.*
 coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# 文档构建
+docs/_build/
+
+# 前端构建（如果不需要提交）
+# frontend/build/
+# frontend/dist/
+
+# 其他
+*.pid
+*.seed
+*.pid.lock
