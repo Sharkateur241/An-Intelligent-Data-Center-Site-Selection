@@ -40,6 +40,7 @@
 - **Google Earth Engine账号** (必需)
 - **8GB+ RAM** (推荐)
 - **稳定的网络连接** (访问GEE服务)
+- **支持Windows/Linux/Mac** (WSL也可用)
 
 ## 🚀 快速开始
 
