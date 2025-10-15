@@ -26,7 +26,7 @@ def setup_gee_auth():
     
     # 检查是否已经认证
     try:
-        ee.Initialize()
+        ee.Initialize(project='data-center-location-analysis')
         print("✅ GEE已认证，系统可以正常运行！")
         return True
     except Exception as e:
@@ -38,7 +38,7 @@ def setup_gee_auth():
         try:
             print("正在尝试GEE认证...")
             ee.Authenticate()
-            ee.Initialize()
+            ee.Initialize(project='data-center-location-analysis')
             print("✅ GEE认证成功！")
             return True
         except Exception as auth_error:

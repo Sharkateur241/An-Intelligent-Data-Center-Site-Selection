@@ -11,6 +11,10 @@ import uvicorn
 import os
 import asyncio
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 from services.satellite_service import SatelliteService
 from services.image_analysis import ImageAnalysisService
@@ -24,7 +28,8 @@ from services.energy_ai_analysis import EnergyAIAnalysisService
 from services.power_supply_ai_analysis import PowerSupplyAIAnalysisService
 from services.energy_storage_ai_analysis import EnergyStorageAIAnalysisService
 from services.decision_ai_analysis import DecisionAIAnalysisService
-from services.enhanced_data_center_analysis import EnhancedDataCenterAnalysisService
+from services.regional_analysis import RegionalAnalysisService
+from services.heat_utilization_analysis import HeatUtilizationAnalysisService
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -58,8 +63,12 @@ power_supply_ai_service = PowerSupplyAIAnalysisService()
 energy_storage_ai_service = EnergyStorageAIAnalysisService()
 decision_ai_service = DecisionAIAnalysisService()
 
-# 初始化增强版分析服务
-enhanced_analysis_service = EnhancedDataCenterAnalysisService()
+# 初始化其他分析服务
+regional_analysis_service = RegionalAnalysisService()
+heat_utilization_service = HeatUtilizationAnalysisService()
+
+
+# 移除不存在的服务初始化
 
 # 数据模型
 class LocationRequest(BaseModel):
@@ -120,31 +129,52 @@ async def analyze_location(request: LocationRequest):
             radius=request.radius
         )
         
-        # 2. 并行运行AI分析
-        tasks = [
-            
-            # AI分析（增强分析）
-            multimodal_service.analyze_with_gee_data(satellite_data),
-            energy_ai_service.analyze_energy_resources_ai(satellite_data),
-            power_supply_ai_service.analyze_power_supply_ai(satellite_data, 100),
-            energy_storage_ai_service.analyze_storage_layout_ai(satellite_data, 100, 0.7),
-            decision_ai_service.analyze_location_ai(satellite_data),
-            
-            # PROMETHEE-MCGP分析（保留）
-            promethee_mcgp_service.analyze_data_center_site_selection(
-                request.latitude, request.longitude, request.city_name
-            )
+        # 2. 运行AI分析（优化版本 - 串行执行避免API限流）
+        print("🔄 开始AI分析...")
+        
+        # 串行执行AI分析，避免API限流
+        ai_results = []
+        ai_services = [
+            ("多模态分析", multimodal_service.analyze_with_gee_data, [satellite_data]),
+            ("能源分析", energy_ai_service.analyze_energy_resources_ai, [satellite_data]),
+            ("供电分析", power_supply_ai_service.analyze_power_supply_ai, [satellite_data, 100]),
+            ("储能分析", energy_storage_ai_service.analyze_storage_layout_ai, [satellite_data, 100, 0.7]),
+            ("决策分析", decision_ai_service.analyze_location_ai, [satellite_data])
         ]
         
-        # 添加超时处理
+        for name, service_func, args in ai_services:
+            try:
+                print(f"🔄 开始{name}...")
+                result = await asyncio.wait_for(
+                    service_func(*args),
+                    timeout=60  # 每个服务60秒超时
+                )
+                ai_results.append(result)
+                print(f"✅ {name}完成")
+            except Exception as e:
+                print(f"❌ {name}失败: {e}")
+                ai_results.append({"success": False, "error": str(e)})
+        
+        # 解包结果
+        ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision = ai_results
+        
+        
+        # 使用简化的决策分析
         try:
-            results = await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=300  # 5分钟超时
+            promethee_mcgp_analysis = await asyncio.wait_for(
+                promethee_mcgp_service.analyze_data_center_site_selection_with_ai(
+                    request.latitude, request.longitude, request.city_name,
+                    ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision
+                ),
+                timeout=60  # 60秒超时
             )
-        except asyncio.TimeoutError:
-            print("❌ 分析任务超时，使用默认结果")
-            results = [{"success": False, "error": "分析超时"}] * len(tasks)
+            print("✅ 决策分析完成")
+        except Exception as e:
+            print(f"❌ 决策分析失败: {e}")
+            promethee_mcgp_analysis = {"success": False, "error": str(e)}
+        
+        # 设置results变量以保持兼容性
+        results = [ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision, promethee_mcgp_analysis]
         
         # 打印详细的错误信息
         for i, result in enumerate(results):
@@ -190,6 +220,13 @@ async def analyze_location(request: LocationRequest):
         )
         power_supply_analysis = ai_power_supply if ai_power_supply.get("success") else {}
         energy_storage_analysis = ai_energy_storage if ai_energy_storage.get("success") else {}
+        
+        # 确保geographic_environment包含卫星图像信息
+        if satellite_data and satellite_data.get("url"):
+            geographic_environment.update({
+                "satellite_image_url": satellite_data["url"],
+                "satellite_image_metadata": satellite_data.get("metadata", {})
+            })
         
         return AnalysisResult(
             location={"latitude": request.latitude, "longitude": request.longitude},
@@ -596,6 +633,33 @@ async def analyze_comprehensive_ai(request: LocationRequest,
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI综合分析失败: {str(e)}")
+
+
+@app.post("/analyze/regional")
+async def analyze_regional(request: LocationRequest):
+    """
+    分析区域特色
+    """
+    try:
+        result = await regional_analysis_service.analyze_regional_characteristics(
+            request.latitude, request.longitude, request.city_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"区域分析失败: {str(e)}")
+
+@app.post("/analyze/heat-utilization")
+async def analyze_heat_utilization(request: LocationRequest):
+    """
+    分析余热利用
+    """
+    try:
+        result = await heat_utilization_service.analyze_heat_utilization(
+            request.latitude, request.longitude, 100, request.city_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"余热利用分析失败: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(

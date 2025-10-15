@@ -11,6 +11,10 @@ from datetime import datetime, timedelta
 import base64
 import io
 from PIL import Image
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 class SatelliteService:
     """卫星数据服务类"""
@@ -29,10 +33,25 @@ class SatelliteService:
             # 设置环境变量
             os.environ['PYTHONHTTPSVERIFY'] = '0'
             
+            # 设置代理
+            http_proxy = os.getenv('HTTP_PROXY')
+            https_proxy = os.getenv('HTTPS_PROXY')
+            
+            if http_proxy:
+                os.environ['HTTP_PROXY'] = http_proxy
+                os.environ['http_proxy'] = http_proxy
+                print(f"设置HTTP代理: {http_proxy}")
+            
+            if https_proxy:
+                os.environ['HTTPS_PROXY'] = https_proxy
+                os.environ['https_proxy'] = https_proxy
+                print(f"设置HTTPS代理: {https_proxy}")
+            
             # 初始化Google Earth Engine
-            # 使用您的项目ID
-            ee.Initialize(project='data-center-location-analysis')
-            print("Google Earth Engine 初始化成功")
+            # 使用环境变量中的项目ID
+            project_id = os.getenv('GEE_PROJECT_ID', 'data-center-location-analysis')
+            ee.Initialize(project=project_id)
+            print(f"Google Earth Engine 初始化成功，项目ID: {project_id}")
             self.gee_available = True
         except Exception as e:
             print(f"GEE初始化失败: {e}")
@@ -281,10 +300,17 @@ class SatelliteService:
                          .filterBounds(region)
                          .filter(ee.Filter.lt('CLOUD_COVER', 30)))
             
-            image_count = collection.size().getInfo()
-            print(f"找到 {image_count} 张Landsat 8/9图像")
+            # 优化：直接尝试获取图像，不计算总数
+            try:
+                image = collection.sort('CLOUD_COVER').first()
+                image_info = image.getInfo()
+                print("✅ 找到Landsat 8/9图像")
+                has_landsat = True
+            except:
+                print("该地区无可用Landsat数据，尝试Dynamic World")
+                has_landsat = False
             
-            if image_count == 0:
+            if not has_landsat:
                 print("该地区无可用Landsat数据，尝试Dynamic World")
                 # 备选：使用Dynamic World
                 dw_collection = (ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
@@ -293,7 +319,13 @@ class SatelliteService:
                                .select('label'))
                 
                 # 为Dynamic World也设置超时
-                ee.data.setTimeout(300)  # 5分钟超时
+                try:
+                    if hasattr(ee.data, 'setTimeout'):
+                        ee.data.setTimeout(300)
+                    else:
+                        os.environ['EE_TIMEOUT'] = '300'
+                except:
+                    pass
                 
                 dw_count = dw_collection.size().getInfo()
                 print(f"找到 {dw_count} 张Dynamic World图像")
@@ -327,10 +359,7 @@ class SatelliteService:
                 })
             else:
                 # 使用Landsat图像（主要方案）
-                image = collection.sort('CLOUD_COVER').first()
-                
-                # 先检查图像是否有数据
-                image_info = image.getInfo()
+                # image已经在上面获取了
                 print(f"Landsat图像信息: {image_info}")
                 
                 # 直接使用原始RGB波段，不进行预处理
@@ -356,7 +385,7 @@ class SatelliteService:
                 # 确保rgb_image是正确的格式
                 print(f"🔍 RGB图像波段: {rgb_image.bandNames().getInfo()}")
                 
-                # 生成GEE图像URL - 使用正确的参数（按照之前代码的方式）
+                # 生成GEE图像URL - 使用正确的参数（按照工作代码的方式）
                 # 使用原始尺寸以获得更好的分析效果
                 image_url = rgb_image.getThumbURL({
                     'region': region,

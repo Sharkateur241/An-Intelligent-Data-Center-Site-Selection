@@ -6,6 +6,7 @@ import numpy as np
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 import math
+from datetime import datetime
 
 @dataclass
 class CriteriaWeight:
@@ -470,3 +471,155 @@ class PROMETHEEMCGP:
                 "寻找其他候选位置",
                 "考虑其他建设模式"
             ]
+    
+    async def analyze_data_center_site_selection_with_ai(self, latitude: float, longitude: float, city_name: str, 
+                                                       ai_multimodal: Dict[str, Any], ai_energy: Dict[str, Any],
+                                                       ai_power_supply: Dict[str, Any], ai_energy_storage: Dict[str, Any],
+                                                       ai_decision: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        使用AI分析结果进行PROMETHEE-MCGP分析
+        
+        Args:
+            latitude: 纬度
+            longitude: 经度
+            city_name: 城市名称
+            ai_multimodal: 多模态AI分析结果
+            ai_energy: 能源AI分析结果
+            ai_power_supply: 供电AI分析结果
+            ai_energy_storage: 储能AI分析结果
+            ai_decision: 决策AI分析结果
+            
+        Returns:
+            综合PROMETHEE-MCGP分析结果
+        """
+        try:
+            # 从AI分析结果中提取评分
+            scores = self._extract_scores_from_ai_results(
+                ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision
+            )
+            
+            # 使用提取的评分进行PROMETHEE-MCGP分析
+            analysis_result = self._perform_promethee_mcgp_analysis(scores)
+            
+            # 添加AI分析结果的引用
+            analysis_result["ai_analysis_integration"] = {
+                "multimodal_analysis": ai_multimodal.get("success", False),
+                "energy_analysis": ai_energy.get("success", False),
+                "power_supply_analysis": ai_power_supply.get("success", False),
+                "energy_storage_analysis": ai_energy_storage.get("success", False),
+                "decision_analysis": ai_decision.get("success", False)
+            }
+            
+            return analysis_result
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"AI集成PROMETHEE-MCGP分析失败: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    def _extract_scores_from_ai_results(self, ai_multimodal: Dict[str, Any], ai_energy: Dict[str, Any],
+                                      ai_power_supply: Dict[str, Any], ai_energy_storage: Dict[str, Any],
+                                      ai_decision: Dict[str, Any]) -> Dict[str, float]:
+        """从AI分析结果中提取评分"""
+        scores = {}
+        
+        # 从多模态分析中提取8个核心维度的评分
+        if ai_multimodal.get("success") and "analysis" in ai_multimodal:
+            try:
+                analysis = ai_multimodal["analysis"]
+                if isinstance(analysis, dict):
+                    # 提取8个核心维度的评分
+                    for key in ["energy_supply", "network_connectivity", "geographic_environment", 
+                              "policy_regulations", "infrastructure", "human_resources", 
+                              "socio_economic", "business_ecosystem"]:
+                        if key in analysis and "score" in analysis[key]:
+                            scores[f"ai_{key}"] = analysis[key]["score"]
+            except Exception as e:
+                print(f"⚠️ 提取多模态分析评分失败: {e}")
+        
+        # 从其他AI分析中提取评分
+        for ai_result, prefix in [(ai_energy, "energy"), (ai_power_supply, "power_supply"), 
+                                (ai_energy_storage, "energy_storage"), (ai_decision, "decision")]:
+            if ai_result.get("success") and "analysis" in ai_result:
+                try:
+                    analysis = ai_result["analysis"]
+                    if isinstance(analysis, dict):
+                        # 提取总体评分
+                        if "overall_score" in analysis:
+                            scores[f"ai_{prefix}_overall"] = analysis["overall_score"]
+                        # 提取各维度评分
+                        for key, value in analysis.items():
+                            if isinstance(value, dict) and "score" in value:
+                                scores[f"ai_{prefix}_{key}"] = value["score"]
+                except Exception as e:
+                    print(f"⚠️ 提取{prefix}分析评分失败: {e}")
+        
+        return scores
+    
+    def _perform_promethee_mcgp_analysis(self, scores: Dict[str, float]) -> Dict[str, Any]:
+        """执行PROMETHEE-MCGP分析"""
+        try:
+            # 构建综合评分矩阵
+            criteria_weights = {
+                "ai_energy_supply": 0.20,
+                "ai_network_connectivity": 0.15,
+                "ai_geographic_environment": 0.15,
+                "ai_policy_regulations": 0.10,
+                "ai_infrastructure": 0.10,
+                "ai_human_resources": 0.10,
+                "ai_socio_economic": 0.10,
+                "ai_business_ecosystem": 0.10
+            }
+            
+            # 计算加权总分
+            total_score = 0
+            weight_sum = 0
+            for criterion, weight in criteria_weights.items():
+                if criterion in scores:
+                    total_score += scores[criterion] * weight
+                    weight_sum += weight
+            
+            # 标准化评分
+            normalized_score = total_score / weight_sum if weight_sum > 0 else 0
+            
+            # 生成分析结果
+            return {
+                "success": True,
+                "analysis_type": "AI集成PROMETHEE-MCGP分析",
+                "overall_score": round(normalized_score, 2),
+                "detailed_scores": scores,
+                "criteria_weights": criteria_weights,
+                "recommendations": self._generate_ai_integrated_recommendations(scores, normalized_score),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"PROMETHEE-MCGP分析失败: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    def _generate_ai_integrated_recommendations(self, scores: Dict[str, float], overall_score: float) -> str:
+        """生成基于AI分析结果的综合建议"""
+        recommendations = []
+        
+        # 基于总体评分给出建议
+        if overall_score >= 8:
+            recommendations.append("该地区非常适合建设数据中心，建议优先考虑")
+        elif overall_score >= 6:
+            recommendations.append("该地区适合建设数据中心，但需要关注某些方面")
+        elif overall_score >= 4:
+            recommendations.append("该地区建设数据中心存在一定风险，需要谨慎评估")
+        else:
+            recommendations.append("该地区不适合建设数据中心，建议重新选址")
+        
+        # 基于各维度评分给出具体建议
+        for criterion, score in scores.items():
+            if score < 5:
+                criterion_name = criterion.replace("ai_", "").replace("_", " ")
+                recommendations.append(f"需要改善{criterion_name}方面（当前评分：{score}）")
+        
+        return "；".join(recommendations)

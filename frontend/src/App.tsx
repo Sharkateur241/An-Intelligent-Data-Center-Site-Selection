@@ -18,6 +18,9 @@ interface AnalysisData {
   ai_power_supply_analysis?: any;
   ai_energy_storage_analysis?: any;
   ai_decision_analysis?: any;
+  // 新增分析结果
+  regional_analysis?: any;
+  heat_utilization_analysis?: any;
 }
 
 const App: React.FC = () => {
@@ -197,26 +200,49 @@ const App: React.FC = () => {
   const handleAnalyze = async (lat: number, lng: number, radius: number = 1000) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/analyze/location', {
+      // 先调用主要分析API
+      const basicResponse = await fetch('http://localhost:8000/analyze/location', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          latitude: lat,
-          longitude: lng,
-          radius: radius
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lng, radius: radius })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setAnalysisData(data);
+      if (basicResponse.ok) {
+        const basicData = await basicResponse.json();
+        
+        // 尝试调用其他API（不阻塞主要功能）
+        Promise.allSettled([
+          fetch('http://localhost:8000/analyze/regional', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: lat, longitude: lng, radius: radius })
+          }),
+          fetch('http://localhost:8000/analyze/heat-utilization', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: lat, longitude: lng, radius: radius })
+          })
+        ]).then(([regionalResult, heatResult]) => {
+          if (regionalResult.status === 'fulfilled' && regionalResult.value.ok) {
+            regionalResult.value.json().then(data => {
+              basicData.regional_analysis = data;
+              setAnalysisData({...basicData}); // 触发重新渲染
+            });
+          }
+          if (heatResult.status === 'fulfilled' && heatResult.value.ok) {
+            heatResult.value.json().then(data => {
+              basicData.heat_utilization_analysis = data;
+              setAnalysisData({...basicData}); // 触发重新渲染
+            });
+          }
+        });
+        
+        setAnalysisData(basicData);
         alert('分析完成！');
       } else {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`分析失败 (${response.status}): ${errorText}`);
+        const errorText = await basicResponse.text();
+        console.error('API Error:', basicResponse.status, errorText);
+        throw new Error(`分析失败 (${basicResponse.status}): ${errorText}`);
       }
     } catch (error) {
       console.error('Analysis error:', error);
@@ -405,7 +431,7 @@ const App: React.FC = () => {
               {/* 土地利用分析 - 显示总面积 */}
               {analysisData.land_analysis && (
                 <div className="result-section">
-                  <h3>🏗️ 土地利用分析</h3>
+                  <h3>🏗️ 土地利用与环境分析</h3>
                   <div className="result-content">
                     <p><strong>总面积:</strong> {analysisData.land_analysis.land_use_analysis?.total_area?.toLocaleString() || '计算中...'} 平方米</p>
                     <p><strong>分析日期:</strong> {analysisData.land_analysis.analysis_date ? new Date(analysisData.land_analysis.analysis_date).toLocaleString() : '未知'}</p>
@@ -417,6 +443,52 @@ const App: React.FC = () => {
                             <li key={key}>{key}: {((value as number) * 100).toFixed(1)}%</li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    
+                    {/* 区域特色分析 */}
+                    {analysisData.regional_analysis && analysisData.regional_analysis.success && (
+                      <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
+                        <h4 style={{ color: '#1890ff', marginBottom: '10px' }}>🌍 区域特色分析</h4>
+                        <p><strong>区域类型:</strong> {analysisData.regional_analysis.region_type}</p>
+                        <p><strong>分析时间:</strong> {analysisData.regional_analysis.timestamp}</p>
+                        {analysisData.regional_analysis.recommendations && (
+                          <div>
+                            <p><strong>区域建议:</strong></p>
+                            <div className="markdown-content" style={{ 
+                              background: '#f5f5f5', 
+                              padding: '10px', 
+                              borderRadius: '6px', 
+                              marginTop: '8px',
+                              fontSize: '13px'
+                            }}>
+                              <ReactMarkdown>{analysisData.regional_analysis.recommendations.join('\n')}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* 余热利用分析 */}
+                    {analysisData.heat_utilization_analysis && analysisData.heat_utilization_analysis.success && (
+                      <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
+                        <h4 style={{ color: '#1890ff', marginBottom: '10px' }}>🔥 余热利用分析</h4>
+                        <p><strong>区域类型:</strong> {analysisData.heat_utilization_analysis.region_type}</p>
+                        <p><strong>分析时间:</strong> {analysisData.heat_utilization_analysis.timestamp}</p>
+                        {analysisData.heat_utilization_analysis.implementation_recommendations && (
+                          <div>
+                            <p><strong>余热利用建议:</strong></p>
+                            <div className="markdown-content" style={{ 
+                              background: '#f5f5f5', 
+                              padding: '10px', 
+                              borderRadius: '6px', 
+                              marginTop: '8px',
+                              fontSize: '13px'
+                            }}>
+                              <ReactMarkdown>{analysisData.heat_utilization_analysis.implementation_recommendations.join('\n')}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -588,6 +660,8 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
+
             </div>
           </div>
         )}

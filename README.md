@@ -146,12 +146,9 @@ DEBUG=False
 │       ├── decision_ai_analysis.py        # 决策AI分析
 │       ├── promethee_mcgp_analysis.py     # PROMETHEE决策
 │       ├── multimodal_analysis.py         # 多模态分析
-│       └── multimodal_analysis_new.py     # 新版多模态分析
 ├── frontend/                  # 前端应用
 │   ├── src/                  # React源码
 │   │   ├── App.tsx           # 主应用
-│   │   ├── App_simple.tsx    # 简化版应用
-│   │   ├── App_advanced.tsx  # 高级版应用
 │   │   └── components/       # 组件
 │   │       ├── MapComponent.tsx      # 地图组件
 │   │       ├── EnergyAssessment.tsx  # 能源评估

@@ -27,65 +27,80 @@ class MultimodalAnalysisService:
         )
         self.model = "gpt-4o-2024-08-06"
         
-        # 数据中心选址分析prompt模板 - 增强版
+        # 数据中心选址分析prompt模板 - 核心维度版
         self.datacenter_prompt = """
-请分析这张卫星图像，从以下维度评估数据中心选址的适宜性，并给出详细的评分：
+请分析这张卫星图像，从数据中心选址的核心维度进行评估，并给出详细的评分：
 
-## 分析维度（每项1-10分）
+## 核心分析维度（每项1-10分）
 
-### 1. 土地利用适宜性
-- 地形平坦度
-- 土地可用性
-- 周边环境
+### 1. 能源供应与成本
+- 电网稳定性和可靠性
+- 电力成本分析
+- 绿色能源接入便利性
+- 自备发电条件
 
-### 2. 环境条件
-- 气候条件
-- 自然灾害风险
-- 生态环境
+### 2. 网络连接性
+- 骨干网络接入距离
+- 网络延迟评估
+- 运营商丰富度
+- 国际出口带宽质量
 
-### 3. 基础设施
-- 交通便利性
-- 电力供应
-- 通信网络
+### 3. 地理与环境条件
+- 自然灾害风险评估
+- 气候条件适宜性
+- 地形稳定性
+- 环境合规性
 
-### 4. 技术可行性
-- 建设难度
-- 维护便利性
-- 扩展性
+### 4. 政策与法规环境
+- 政府支持政策
+- 数据合规要求
+- 土地获取便利性
+- 安全法规影响
 
-### 5. 经济性
-- 土地成本
-- 建设成本
-- 运营成本
+### 5. 基础设施与配套
+- 交通运输便利性
+- 水资源供应
+- 消防系统支持
+- 周边产业配套
+
+### 6. 人力资源与人才池
+- 技术人才可用性
+- 劳动力成本
+- 培训资源
+- 人才流动性
+
+### 7. 社会经济稳定性
+- 政治稳定性
+- 经济健康度
+- 社会安全状况
+- 政策连续性
+
+### 8. 商业生态与市场临近度
+- 目标市场距离
+- 产业集群效应
+- 市场竞争状况
+- 业务合作机会
 
 ## 输出格式
-请以JSON格式输出分析结果：
-{
-    "overall_score": 总分(1-10),
-    "land_use": {
-        "score": 分数(1-10),
-        "analysis": "详细分析"
-    },
-    "environment": {
-        "score": 分数(1-10),
-        "analysis": "详细分析"
-    },
-    "infrastructure": {
-        "score": 分数(1-10),
-        "analysis": "详细分析"
-    },
-    "feasibility": {
-        "score": 分数(1-10),
-        "analysis": "详细分析"
-    },
-    "economics": {
-        "score": 分数(1-10),
-        "analysis": "详细分析"
-    },
-    "recommendations": "综合建议",
-    "risks": "潜在风险",
-    "next_steps": "后续步骤"
-}
+请以人类可读的文本格式输出分析结果，包含以下内容：
+
+**综合评分**: X/10分
+
+**各维度详细分析**:
+1. **能源供应与成本** (X/10分): 详细分析内容
+2. **网络连接性** (X/10分): 详细分析内容  
+3. **地理与环境条件** (X/10分): 详细分析内容
+4. **政策与法规环境** (X/10分): 详细分析内容
+5. **基础设施与配套** (X/10分): 详细分析内容
+6. **人力资源与人才池** (X/10分): 详细分析内容
+7. **社会经济稳定性** (X/10分): 详细分析内容
+8. **商业生态与市场临近度** (X/10分): 详细分析内容
+
+**综合建议**: 基于以上分析的总体建议
+**关键风险**: 需要重点关注的风险点
+**下一步行动**: 具体的后续行动建议
+
+**重要提醒**: 请务必以纯文本格式输出，不要使用JSON格式，不要使用代码块，不要使用任何编程语言语法！
 """
 
     async def analyze_satellite_image(self, image_url: str, custom_prompt: Optional[str] = None) -> Dict[str, Any]:
@@ -118,7 +133,7 @@ class MultimodalAnalysisService:
                                         "type": "image_url",
                                         "image_url": {
                                             "url": image_url,
-                                            "detail": "high"  # 使用low减少上下文长度
+                                            "detail": "low"  # 使用low减少上下文长度
                                         }
                                     }
                                 ]
@@ -157,98 +172,145 @@ class MultimodalAnalysisService:
 
     async def analyze_with_gee_data(self, gee_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        结合GEE数据进行综合分析
+        基于地理位置信息进行数据中心选址分析（不依赖图像）
         
         Args:
-            gee_data: GEE数据字典
+            gee_data: GEE数据字典，包含位置信息
             
         Returns:
             综合分析结果
         """
         try:
-            # 提取图像URL（支持多种字段名）
-            image_url = gee_data.get("url") or gee_data.get("image_url", "")
-            print(f"🔍 多模态分析 - 图像URL: {image_url[:50] if image_url else 'None'}...")
+            # 提取位置信息
+            location_info = gee_data.get("metadata", {})
+            center = location_info.get("center", [])
+            radius = location_info.get("radius", 1000)
             
-            if not image_url:
+            if not center or len(center) < 2:
                 return {
                     "success": False,
-                    "error": "GEE数据中缺少图像URL",
+                    "error": "缺少位置信息",
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 检查图像URL格式
-            if not (image_url.startswith("data:image/") or image_url.startswith("https://")):
-                return {
-                    "success": False,
-                    "error": f"图像URL格式不正确: {image_url[:50]}...",
-                    "timestamp": datetime.now().isoformat()
-                }
+            lat, lon = center[0], center[1]
+            print(f"🔍 多模态分析 - 位置: ({lat}, {lon}), 半径: {radius}m")
             
-            # 构建结合GEE数据的分析提示词
-            gee_prompt = f"""
-请分析这张卫星图像，结合以下GEE数据进行数据中心选址分析：
+            # 基于位置信息生成城市名和地区信息
+            city_name = self._get_city_name_from_coords(lat, lon)
+            region_info = self._get_region_info(lat, lon)
+            
+            # 创建基于位置的8维度分析prompt
+            location_prompt = f"""
+请基于以下地理位置信息，从数据中心选址的核心维度进行评估，并给出详细的评分。
 
-GEE数据: {json.dumps(gee_data, ensure_ascii=False, indent=2)}
+**重要**: 请以纯文本格式回答，不要使用JSON、代码块或任何编程语言语法！
 
-请综合考虑卫星图像和GEE数据，进行以下分析：
-1. 土地利用适宜性
-2. 环境条件评估
-3. 基础设施分析
-4. 技术可行性
-5. 经济性评估
+## 分析位置信息
+- 坐标: ({lat}, {lon})
+- 城市/地区: {city_name}
+- 分析半径: {radius}米
+- 地区特征: {region_info}
 
-输出格式：
+## 核心分析维度（每项1-10分）
+
+### 1. 能源供应与成本
+- 电网稳定性和可靠性
+- 电力成本分析
+- 绿色能源接入便利性
+- 自备发电条件
+
+### 2. 网络连接性
+- 骨干网络接入距离
+- 网络延迟评估
+- 运营商丰富度
+- 国际出口带宽质量
+
+### 3. 地理与环境条件
+- 自然灾害风险评估
+- 气候条件适宜性
+- 地形稳定性
+- 环境合规性
+
+### 4. 政策与法规环境
+- 政府支持政策
+- 数据合规要求
+- 土地获取便利性
+- 安全法规影响
+
+### 5. 基础设施与配套
+- 交通运输便利性
+- 水资源供应
+- 消防系统支持
+- 周边产业配套
+
+### 6. 人力资源与人才池
+- 技术人才可用性
+- 劳动力成本
+- 培训资源
+- 人才流动性
+
+### 7. 社会经济稳定性
+- 政治稳定性
+- 经济健康度
+- 社会安全状况
+- 政策连续性
+
+### 8. 商业生态与市场临近度
+- 目标市场距离
+- 产业集群效应
+- 市场竞争状况
+- 业务合作机会
+
+## 输出格式
+请以JSON格式输出分析结果：
 {{
-    "combined_analysis": {{
-        "land_use": {{
-            "score": 分数(1-10),
-            "analysis": "土地利用分析",
-            "gee_insights": "GEE数据洞察"
-        }},
-        "environment": {{
-            "score": 分数(1-10),
-            "analysis": "环境分析",
-            "gee_insights": "GEE数据洞察"
-        }},
-        "infrastructure": {{
-            "score": 分数(1-10),
-            "analysis": "基础设施分析",
-            "gee_insights": "GEE数据洞察"
-        }},
-        "feasibility": {{
-            "score": 分数(1-10),
-            "analysis": "可行性分析",
-            "gee_insights": "GEE数据洞察"
-        }},
-        "economics": {{
-            "score": 分数(1-10),
-            "analysis": "经济性分析",
-            "gee_insights": "GEE数据洞察"
-        }}
+    "overall_score": 总分(1-10),
+    "energy_supply": {{
+        "score": 分数(1-10),
+        "analysis": "能源供应分析"
     }},
-    "overall_score": 总体评分,
+    "network_connectivity": {{
+        "score": 分数(1-10),
+        "analysis": "网络连接性分析"
+    }},
+    "geographic_environment": {{
+        "score": 分数(1-10),
+        "analysis": "地理环境分析"
+    }},
+    "policy_regulations": {{
+        "score": 分数(1-10),
+        "analysis": "政策法规分析"
+    }},
+    "infrastructure": {{
+        "score": 分数(1-10),
+        "analysis": "基础设施分析"
+    }},
+    "human_resources": {{
+        "score": 分数(1-10),
+        "analysis": "人力资源分析"
+    }},
+    "socio_economic": {{
+        "score": 分数(1-10),
+        "analysis": "社会经济分析"
+    }},
+    "business_ecosystem": {{
+        "score": 分数(1-10),
+        "analysis": "商业生态分析"
+    }},
     "recommendations": "综合建议",
-    "risks": "潜在风险",
+    "key_risks": "关键风险",
     "next_steps": "后续步骤"
 }}
 """
             
+            # 只使用文本分析，不包含图像
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
                         "role": "user",
-                        "content": [
-                            {"type": "text", "text": gee_prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_url,
-                                    "detail": "high"  # 恢复high以获得更好的分析效果
-                                }
-                            }
-                        ]
+                        "content": location_prompt
                     }
                 ],
                 max_tokens=8000,
@@ -257,32 +319,114 @@ GEE数据: {json.dumps(gee_data, ensure_ascii=False, indent=2)}
             
             analysis_text = response.choices[0].message.content
             
-            try:
-                analysis_result = json.loads(analysis_text)
-                return {
-                    "success": True,
-                    "analysis": analysis_result,
-                    "model": self.model,
-                    "timestamp": datetime.now().isoformat(),
-                    "gee_data": gee_data,
-                    "api_provider": "GPTPlus5"
-                }
-            except json.JSONDecodeError:
-                return {
-                    "success": True,
-                    "analysis": analysis_text,
-                    "model": self.model,
-                    "timestamp": datetime.now().isoformat(),
-                    "gee_data": gee_data,
-                    "api_provider": "GPTPlus5"
-                }
+            # 如果AI返回的是JSON格式，转换为人类语言
+            if analysis_text.strip().startswith('{') and analysis_text.strip().endswith('}'):
+                try:
+                    analysis_json = json.loads(analysis_text)
+                    # 将JSON转换为人类语言
+                    human_text = self._convert_json_to_human_text(analysis_json)
+                    analysis_text = human_text
+                except json.JSONDecodeError:
+                    pass  # 如果解析失败，使用原始文本
+            
+            return {
+                "success": True,
+                "analysis": analysis_text,
+                "model": self.model,
+                "timestamp": datetime.now().isoformat(),
+                "location_info": {
+                    "city": city_name,
+                    "coordinates": [lat, lon],
+                    "radius": radius,
+                    "region": region_info
+                },
+                "api_provider": "GPTPlus5"
+            }
                 
         except Exception as e:
             return {
                 "success": False,
-                "error": f"GEE数据分析异常: {str(e)}",
+                "error": f"位置数据分析异常: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
+    
+    def _get_city_name_from_coords(self, lat: float, lon: float) -> str:
+        """根据坐标获取城市名"""
+        # 简单的坐标到城市名映射
+        city_mapping = {
+            (30.2741, 120.1551): "杭州",
+            (39.9042, 116.4074): "北京", 
+            (31.2304, 121.4737): "上海",
+            (22.3193, 114.1694): "香港",
+            (23.1291, 113.2644): "广州",
+            (29.5647, 106.5507): "重庆",
+            (30.5728, 104.0668): "成都",
+            (36.0611, 120.3785): "青岛",
+            (38.0428, 114.5149): "石家庄",
+            (34.3416, 108.9398): "西安"
+        }
+        
+        # 查找最接近的城市
+        for (city_lat, city_lon), city_name in city_mapping.items():
+            if abs(lat - city_lat) < 0.5 and abs(lon - city_lon) < 0.5:
+                return city_name
+        
+        # 如果没找到精确匹配，返回坐标信息
+        return f"位置({lat:.4f}, {lon:.4f})"
+    
+    def _get_region_info(self, lat: float, lon: float) -> str:
+        """根据坐标获取地区信息"""
+        if 20 <= lat <= 50 and 100 <= lon <= 130:
+            return "中国东部地区"
+        elif 20 <= lat <= 50 and 70 <= lon <= 100:
+            return "中国西部地区"
+        elif 20 <= lat <= 50 and 110 <= lon <= 125:
+            return "中国东南沿海地区"
+        else:
+            return "其他地区"
+    
+    def _convert_json_to_human_text(self, analysis_json: dict) -> str:
+        """将JSON格式的分析结果转换为人类语言"""
+        try:
+            overall_score = analysis_json.get('overall_score', 0)
+            
+            # 构建人类语言描述
+            human_text = f"**综合评分**: {overall_score}/10分\n\n"
+            human_text += "**各维度详细分析**:\n\n"
+            
+            # 处理各个维度
+            dimensions = [
+                ('energy_supply', '能源供应与成本'),
+                ('network_connectivity', '网络连接性'),
+                ('geographic_environment', '地理与环境条件'),
+                ('policy_regulations', '政策与法规环境'),
+                ('infrastructure', '基础设施与配套'),
+                ('human_resources', '人力资源与人才池'),
+                ('socio_economic', '社会经济稳定性'),
+                ('business_ecosystem', '商业生态与市场临近度')
+            ]
+            
+            for i, (key, name) in enumerate(dimensions, 1):
+                if key in analysis_json:
+                    dim_data = analysis_json[key]
+                    score = dim_data.get('score', 0)
+                    analysis = dim_data.get('analysis', '暂无分析')
+                    human_text += f"{i}. **{name}** ({score}/10分): {analysis}\n\n"
+            
+            # 添加建议和风险
+            if 'recommendations' in analysis_json:
+                human_text += f"**综合建议**: {analysis_json['recommendations']}\n\n"
+            
+            if 'key_risks' in analysis_json:
+                human_text += f"**关键风险**: {analysis_json['key_risks']}\n\n"
+            
+            if 'next_steps' in analysis_json:
+                human_text += f"**下一步行动**: {analysis_json['next_steps']}\n"
+            
+            return human_text
+            
+        except Exception as e:
+            return f"分析结果转换失败: {str(e)}"
 
     async def test_api_connection(self) -> Dict[str, Any]:
         """
