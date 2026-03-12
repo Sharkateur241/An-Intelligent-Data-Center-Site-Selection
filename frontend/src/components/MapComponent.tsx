@@ -1,18 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import { Card, Typography, Button, Space } from 'antd';
-import { EnvironmentOutlined } from '@ant-design/icons';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
+import { Card, Typography, Button, Space } from "antd";
+import { EnvironmentOutlined } from "@ant-design/icons";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const { Title, Text } = Typography;
 
-// 修复Leaflet默认图标问题
+// Fix default Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
+
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
 interface MapComponentProps {
@@ -20,29 +30,37 @@ interface MapComponentProps {
   selectedLocation: { lat: number; lng: number } | null;
 }
 
-// 地图点击事件处理组件
-const MapClickHandler: React.FC<{ onLocationSelect: (lat: number, lng: number) => void }> = ({ onLocationSelect }) => {
+// Component to handle map click events
+const MapClickHandler: React.FC<{
+  onLocationSelect: (lat: number, lng: number) => void;
+}> = ({ onLocationSelect }) => {
   useMapEvents({
     click: (e) => {
       const { lat, lng } = e.latlng;
       onLocationSelect(lat, lng);
     },
   });
+
   return null;
 };
 
-const MapComponent: React.FC<MapComponentProps> = ({ onLocationSelect, selectedLocation }) => {
-  const [mapCenter, setMapCenter] = useState<[number, number]>([39.9042, 116.4074]); // 默认北京
-  const [mapZoom, setMapZoom] = useState(10);
+const MapComponent: React.FC<MapComponentProps> = ({
+  onLocationSelect,
+  selectedLocation,
+}) => {
+  // Default world view
+  const [mapCenter, setMapCenter] = useState<[number, number]>([20, 0]);
+  const [mapZoom, setMapZoom] = useState(2);
 
-  // 当选择位置改变时，更新地图中心
+  // Update map when a location is selected
   useEffect(() => {
     if (selectedLocation) {
       setMapCenter([selectedLocation.lat, selectedLocation.lng]);
-      setMapZoom(15);
+      setMapZoom(12);
     }
   }, [selectedLocation]);
 
+  // Get user current location
   const handleGetCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -51,70 +69,87 @@ const MapComponent: React.FC<MapComponentProps> = ({ onLocationSelect, selectedL
           onLocationSelect(latitude, longitude);
         },
         (error) => {
-          console.error('获取位置失败:', error);
+          console.error("Failed to get location:", error);
         }
       );
     } else {
-      console.error('浏览器不支持地理定位');
+      console.error("Geolocation is not supported by this browser.");
     }
   };
 
   return (
-    <Card title="地图选址" className="map-container">
+    <Card title="Map Location Selection" className="map-container">
       <div style={{ marginBottom: 16 }}>
         <Space>
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<EnvironmentOutlined />}
             onClick={handleGetCurrentLocation}
           >
-            获取当前位置
+            Use Current Location
           </Button>
+
           <Text type="secondary">
-            点击地图选择位置，或使用按钮获取当前位置
+            Click on the map to select a location or use the button to detect
+            your current position.
           </Text>
         </Space>
       </div>
-      
-      <div style={{ height: '500px', width: '100%' }}>
+
+      <div style={{ height: "500px", width: "100%" }}>
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: "100%", width: "100%" }}
         >
+          {/* OpenStreetMap base layer */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          
-          {/* 卫星图层选项 */}
+
+          {/* Satellite imagery layer */}
           <TileLayer
             attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             opacity={0.7}
           />
-          
+
           <MapClickHandler onLocationSelect={onLocationSelect} />
-          
+
           {selectedLocation && (
             <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
               <Popup>
                 <div>
-                  <Title level={5}>选择的位置</Title>
-                  <Text>纬度: {selectedLocation.lat.toFixed(6)}</Text><br />
-                  <Text>经度: {selectedLocation.lng.toFixed(6)}</Text>
+                  <Title level={5}>Selected Location</Title>
+
+                  <Text>Latitude: {selectedLocation.lat.toFixed(6)}</Text>
+                  <br />
+
+                  <Text>Longitude: {selectedLocation.lng.toFixed(6)}</Text>
                 </div>
               </Popup>
             </Marker>
           )}
         </MapContainer>
       </div>
-      
+
       {selectedLocation && (
-        <div style={{ marginTop: 16, padding: 12, background: '#f6ffed', borderRadius: 4 }}>
-          <Text strong>已选择位置:</Text><br />
-          <Text>纬度: {selectedLocation.lat.toFixed(6)}</Text><br />
-          <Text>经度: {selectedLocation.lng.toFixed(6)}</Text>
+        <div
+          style={{
+            marginTop: 16,
+            padding: 12,
+            background: "#f6ffed",
+            borderRadius: 4,
+          }}
+        >
+          <Text strong>Selected Coordinates:</Text>
+          <br />
+
+          <Text>Latitude: {selectedLocation.lat.toFixed(6)}</Text>
+          <br />
+
+          <Text>Longitude: {selectedLocation.lng.toFixed(6)}</Text>
         </div>
       )}
     </Card>

@@ -337,11 +337,11 @@ class DecisionAnalysisService:
         }
     
     async def _generate_decision_recommendations(self, overall_score: Dict[str, Any],
-                                              land_score: Dict[str, Any],
-                                              energy_score: Dict[str, Any],
-                                              grid_score: Dict[str, Any],
-                                              economic_score: Dict[str, Any],
-                                              environmental_score: Dict[str, Any]) -> List[str]:
+                                            land_score: Dict[str, Any],
+                                            energy_score: Dict[str, Any],
+                                            grid_score: Dict[str, Any],
+                                            economic_score: Dict[str, Any],
+                                            environmental_score: Dict[str, Any]) -> List[str]:
         """
         生成决策建议
         """
