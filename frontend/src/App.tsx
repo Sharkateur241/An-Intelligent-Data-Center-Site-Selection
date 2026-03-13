@@ -127,9 +127,9 @@ export default function App() {
         <div className="hero-overlay" />
         <div className="hero-content">
           <div className="hero-badge">
-            Powered by Google Earth Engine &amp; AI Technology
+            Intelligent Data Center Site Selection
           </div>
-          <h1>Data Center Location Analysis Platform</h1>
+          <h1>Powered by Google Earth Engine and AI Technology</h1>
           <p>
             An Intelligent Data Center Site Selection and Energy Optimization
             Based on Google Earth Engine and AI Technology .
