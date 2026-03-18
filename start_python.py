@@ -11,8 +11,8 @@ def main():
     print("🚀 启动数据中心智能选址系统...")
     
     # 设置代理环境变量
-    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:1082'
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:1082'
     
     print("📋 设置代理环境变量...")
     print(f"HTTP_PROXY: {os.environ.get('HTTP_PROXY')}")

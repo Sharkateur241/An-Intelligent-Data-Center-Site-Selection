@@ -1,5 +1,5 @@
 """
-多模态分析服务 - 使用OpenAI官方库进行卫星图像分析
+Multimodal analysis service - satellite image analysis via OpenAI-compatible API
 """
 
 import asyncio
@@ -10,114 +10,98 @@ from openai import OpenAI
 import os
 
 class MultimodalAnalysisService:
-    """多模态分析服务类"""
+    """Multimodal analysis service"""
     
     def __init__(self):
-        """初始化多模态分析服务"""
-        # 设置代理
-        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
+        """Initialize multimodal analysis service"""
+        # Use project-level API settings; do not force a proxy
+        api_key = os.environ.get('OPENAI_API_KEY', '')
+        base_url = os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+        self.client = OpenAI(base_url=base_url, api_key=api_key)
+        self.model = os.environ.get("OPENAI_MULTIMODAL_MODEL", "gpt-4o-2024-08-06")
+        # Derive provider label from base_url
+        self.api_provider = "OpenAI" if "openai" in base_url else "GPTPlus5"
         
-        # 直接使用项目中的API密钥
-        api_key = os.environ.get('OPENAI_API_KEY', 'sk-abaWwmXxZ2Mtw9GwLHKNI81Mxpsj9RVj5IapLh8mzoP4LfAR')
-        
-        self.client = OpenAI(
-            base_url='https://api.gptplus5.com/v1',
-            api_key=api_key
-        )
-        self.model = "gpt-4o-2024-08-06"
-        
-        # 数据中心选址分析prompt模板 - 核心维度版
+        # Datacenter siting prompt template (core dimensions)
         self.datacenter_prompt = """
-请分析这张卫星图像，从数据中心选址的核心维度进行评估，并给出详细的评分：
+Analyze this satellite image for data center siting across the core dimensions and provide detailed scores.
 
-## 核心分析维度（每项1-10分）
+## Core dimensions (each 1–10)
 
-### 1. 能源供应与成本
-- 电网稳定性和可靠性
-- 电力成本分析
-- 绿色能源接入便利性
-- 自备发电条件
+1) Energy supply & cost
+- Grid stability/reliability
+- Power cost
+- Green energy access
+- Onsite generation feasibility
 
-### 2. 网络连接性
-- 骨干网络接入距离
-- 网络延迟评估
-- 运营商丰富度
-- 国际出口带宽质量
+2) Network connectivity
+- Distance to backbone
+- Latency
+- Carrier diversity
+- International bandwidth quality
 
-### 3. 地理与环境条件
-- 自然灾害风险评估
-- 气候条件适宜性
-- 地形稳定性
-- 环境合规性
+3) Geography & environment
+- Natural hazard risk
+- Climate suitability
+- Terrain stability
+- Environmental compliance
 
-### 4. 政策与法规环境
-- 政府支持政策
-- 数据合规要求
-- 土地获取便利性
-- 安全法规影响
+4) Policy & regulatory environment
+- Government support
+- Data compliance requirements
+- Land acquisition ease
+- Safety/security regulations
 
-### 5. 基础设施与配套
-- 交通运输便利性
-- 水资源供应
-- 消防系统支持
-- 周边产业配套
+5) Infrastructure & utilities
+- Transport access
+- Water supply
+- Fire safety support
+- Nearby industry/ecosystem
 
-### 6. 人力资源与人才池
-- 技术人才可用性
-- 劳动力成本
-- 培训资源
-- 人才流动性
+6) Human resources & talent pool
+- Technical talent availability
+- Labor cost
+- Training resources
+- Talent mobility
 
-### 7. 社会经济稳定性
-- 政治稳定性
-- 经济健康度
-- 社会安全状况
-- 政策连续性
+7) Socioeconomic stability
+- Political stability
+- Economic health
+- Public safety
+- Policy consistency
 
-### 8. 商业生态与市场临近度
-- 目标市场距离
-- 产业集群效应
-- 市场竞争状况
-- 业务合作机会
+8) Business ecosystem & market proximity
+- Distance to target markets
+- Industrial clustering
+- Competitive landscape
+- Partnership opportunities
 
-## 输出格式
-请以人类可读的文本格式输出分析结果，包含以下内容：
+## Output format
+Provide a human-readable text result including:
+- Overall score X/10
+- Per-dimension details (score + analysis)
+- Overall recommendation
+- Key risks
+- Next actions
 
-**综合评分**: X/10分
-
-**各维度详细分析**:
-1. **能源供应与成本** (X/10分): 详细分析内容
-2. **网络连接性** (X/10分): 详细分析内容  
-3. **地理与环境条件** (X/10分): 详细分析内容
-4. **政策与法规环境** (X/10分): 详细分析内容
-5. **基础设施与配套** (X/10分): 详细分析内容
-6. **人力资源与人才池** (X/10分): 详细分析内容
-7. **社会经济稳定性** (X/10分): 详细分析内容
-8. **商业生态与市场临近度** (X/10分): 详细分析内容
-
-**综合建议**: 基于以上分析的总体建议
-**关键风险**: 需要重点关注的风险点
-**下一步行动**: 具体的后续行动建议
-
-**重要提醒**: 请务必以纯文本格式输出，不要使用JSON格式，不要使用代码块，不要使用任何编程语言语法！
+Important: plain text only; do not return JSON or code blocks.
 """
 
     async def analyze_satellite_image(self, image_url: str, custom_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
-        分析卫星图像
+        Analyze a satellite image.
         
         Args:
-            image_url: 图像URL
-            custom_prompt: 自定义提示词
+            image_url: image URL
+            custom_prompt: optional prompt override
             
         Returns:
-            分析结果字典
+            Analysis result dict
         """
         try:
             prompt = custom_prompt or self.datacenter_prompt
             
-            # 使用OpenAI官方库进行API调用，增加重试机制
+            # Call API with retry
             import time
             max_retries = 3
             for attempt in range(max_retries):
@@ -133,7 +117,7 @@ class MultimodalAnalysisService:
                                         "type": "image_url",
                                         "image_url": {
                                             "url": image_url,
-                                            "detail": "low"  # 使用low减少上下文长度
+                                            "detail": "low"  # use low to reduce context length
                                         }
                                     }
                                 ]
@@ -141,47 +125,47 @@ class MultimodalAnalysisService:
                         ],
                         max_tokens=8000,
                         temperature=0.3,
-                        timeout=180  # 2分钟超时
+                        timeout=180  # 2-minute timeout
                     )
-                    break  # 成功则跳出重试循环
+                    break  # success
                 except Exception as e:
                     if attempt < max_retries - 1:
-                        print(f"⚠️ API调用失败，第{attempt + 1}次重试: {e}")
-                        time.sleep(2)  # 等待2秒后重试
+                        print(f"⚠️ API call failed, retry {attempt + 1}: {e}")
+                        time.sleep(2)  # wait 2s then retry
                     else:
-                        raise e  # 最后一次重试失败，抛出异常
+                        raise e
             
             analysis_text = response.choices[0].message.content
             
-            # 直接返回文本分析结果
+            # Return text analysis
             return {
                 "success": True,
                 "analysis": analysis_text,
                 "model": self.model,
                 "timestamp": datetime.now().isoformat(),
                 "image_url": image_url,
-                "api_provider": "GPTPlus5"
+                "api_provider": self.api_provider
             }
                 
         except Exception as e:
             return {
                 "success": False,
-                "error": f"API请求异常: {str(e)}",
+                "error": f"API request error: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
 
     async def analyze_with_gee_data(self, gee_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        基于地理位置信息进行数据中心选址分析（不依赖图像）
+        Analyze location-only data (no image) for data center siting.
         
         Args:
-            gee_data: GEE数据字典，包含位置信息
+            gee_data: dict with location metadata
             
         Returns:
-            综合分析结果
+            Analysis result
         """
         try:
-            # 提取位置信息
+            # Extract location info
             location_info = gee_data.get("metadata", {})
             center = location_info.get("center", [])
             radius = location_info.get("radius", 1000)
@@ -189,122 +173,98 @@ class MultimodalAnalysisService:
             if not center or len(center) < 2:
                 return {
                     "success": False,
-                    "error": "缺少位置信息",
+                    "error": "Missing location info",
                     "timestamp": datetime.now().isoformat()
                 }
             
             lat, lon = center[0], center[1]
-            print(f"🔍 多模态分析 - 位置: ({lat}, {lon}), 半径: {radius}m")
+            print(f"🔍 Multimodal analysis - location: ({lat}, {lon}), radius: {radius}m")
             
-            # 基于位置信息生成城市名和地区信息
+            # Build city/region info
             city_name = self._get_city_name_from_coords(lat, lon)
             region_info = self._get_region_info(lat, lon)
             
-            # 创建基于位置的8维度分析prompt
+            # Build 8-dimension prompt based on location
             location_prompt = f"""
-请基于以下地理位置信息，从数据中心选址的核心维度进行评估，并给出详细的评分。
+Evaluate this location for data center siting across the core dimensions and provide detailed scores.
 
-**重要**: 请以纯文本格式回答，不要使用JSON、代码块或任何编程语言语法！
+Important: reply in plain text; do not use JSON or code blocks.
 
-## 分析位置信息
-- 坐标: ({lat}, {lon})
-- 城市/地区: {city_name}
-- 分析半径: {radius}米
-- 地区特征: {region_info}
+## Location info
+- Coordinates: ({lat}, {lon})
+- City/Region: {city_name}
+- Analysis radius: {radius} m
+- Regional traits: {region_info}
 
-## 核心分析维度（每项1-10分）
+## Core dimensions (each 1–10)
 
-### 1. 能源供应与成本
-- 电网稳定性和可靠性
-- 电力成本分析
-- 绿色能源接入便利性
-- 自备发电条件
+1) Energy supply & cost
+- Grid stability/reliability
+- Power cost
+- Green energy access
+- Onsite generation feasibility
 
-### 2. 网络连接性
-- 骨干网络接入距离
-- 网络延迟评估
-- 运营商丰富度
-- 国际出口带宽质量
+2) Network connectivity
+- Distance to backbone
+- Latency
+- Carrier diversity
+- International bandwidth quality
 
-### 3. 地理与环境条件
-- 自然灾害风险评估
-- 气候条件适宜性
-- 地形稳定性
-- 环境合规性
+3) Geography & environment
+- Natural hazard risk
+- Climate suitability
+- Terrain stability
+- Environmental compliance
 
-### 4. 政策与法规环境
-- 政府支持政策
-- 数据合规要求
-- 土地获取便利性
-- 安全法规影响
+4) Policy & regulatory environment
+- Government support
+- Data compliance requirements
+- Land acquisition ease
+- Safety/security regulations
 
-### 5. 基础设施与配套
-- 交通运输便利性
-- 水资源供应
-- 消防系统支持
-- 周边产业配套
+5) Infrastructure & utilities
+- Transport access
+- Water supply
+- Fire safety support
+- Nearby industry/ecosystem
 
-### 6. 人力资源与人才池
-- 技术人才可用性
-- 劳动力成本
-- 培训资源
-- 人才流动性
+6) Human resources & talent pool
+- Technical talent availability
+- Labor cost
+- Training resources
+- Talent mobility
 
-### 7. 社会经济稳定性
-- 政治稳定性
-- 经济健康度
-- 社会安全状况
-- 政策连续性
+7) Socioeconomic stability
+- Political stability
+- Economic health
+- Public safety
+- Policy consistency
 
-### 8. 商业生态与市场临近度
-- 目标市场距离
-- 产业集群效应
-- 市场竞争状况
-- 业务合作机会
+8) Business ecosystem & market proximity
+- Distance to target markets
+- Industrial clustering
+- Competitive landscape
+- Partnership opportunities
 
-## 输出格式
-请以JSON格式输出分析结果：
+## Output format
+Return analysis as JSON:
 {{
-    "overall_score": 总分(1-10),
-    "energy_supply": {{
-        "score": 分数(1-10),
-        "analysis": "能源供应分析"
-    }},
-    "network_connectivity": {{
-        "score": 分数(1-10),
-        "analysis": "网络连接性分析"
-    }},
-    "geographic_environment": {{
-        "score": 分数(1-10),
-        "analysis": "地理环境分析"
-    }},
-    "policy_regulations": {{
-        "score": 分数(1-10),
-        "analysis": "政策法规分析"
-    }},
-    "infrastructure": {{
-        "score": 分数(1-10),
-        "analysis": "基础设施分析"
-    }},
-    "human_resources": {{
-        "score": 分数(1-10),
-        "analysis": "人力资源分析"
-    }},
-    "socio_economic": {{
-        "score": 分数(1-10),
-        "analysis": "社会经济分析"
-    }},
-    "business_ecosystem": {{
-        "score": 分数(1-10),
-        "analysis": "商业生态分析"
-    }},
-    "recommendations": "综合建议",
-    "key_risks": "关键风险",
-    "next_steps": "后续步骤"
+  "overall_score": (1-10),
+  "energy_supply": {{"score": (1-10), "analysis": "text"}},
+  "network_connectivity": {{"score": (1-10), "analysis": "text"}},
+  "geographic_environment": {{"score": (1-10), "analysis": "text"}},
+  "policy_regulations": {{"score": (1-10), "analysis": "text"}},
+  "infrastructure": {{"score": (1-10), "analysis": "text"}},
+  "human_resources": {{"score": (1-10), "analysis": "text"}},
+  "socio_economic": {{"score": (1-10), "analysis": "text"}},
+  "business_ecosystem": {{"score": (1-10), "analysis": "text"}},
+  "recommendations": "overall advice",
+  "key_risks": "key risks",
+  "next_steps": "action items"
 }}
 """
             
-            # 只使用文本分析，不包含图像
+            # Text-only analysis, no image included here
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -319,15 +279,15 @@ class MultimodalAnalysisService:
             
             analysis_text = response.choices[0].message.content
             
-            # 如果AI返回的是JSON格式，转换为人类语言
+            # If AI returns JSON, convert to human-readable text
             if analysis_text.strip().startswith('{') and analysis_text.strip().endswith('}'):
                 try:
                     analysis_json = json.loads(analysis_text)
-                    # 将JSON转换为人类语言
+                    # Convert JSON to human text
                     human_text = self._convert_json_to_human_text(analysis_json)
                     analysis_text = human_text
                 except json.JSONDecodeError:
-                    pass  # 如果解析失败，使用原始文本
+                    pass  # keep original text if parsing fails
             
             return {
                 "success": True,
@@ -346,100 +306,93 @@ class MultimodalAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"位置数据分析异常: {str(e)}",
+                "error": f"Location data analysis error: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     def _get_city_name_from_coords(self, lat: float, lon: float) -> str:
-        """根据坐标获取城市名"""
-        # 简单的坐标到城市名映射
+        """Get city name from coordinates"""
         city_mapping = {
-            (30.2741, 120.1551): "杭州",
-            (39.9042, 116.4074): "北京", 
-            (31.2304, 121.4737): "上海",
-            (22.3193, 114.1694): "香港",
-            (23.1291, 113.2644): "广州",
-            (29.5647, 106.5507): "重庆",
-            (30.5728, 104.0668): "成都",
-            (36.0611, 120.3785): "青岛",
-            (38.0428, 114.5149): "石家庄",
-            (34.3416, 108.9398): "西安"
+            (30.2741, 120.1551): "Hangzhou",
+            (39.9042, 116.4074): "Beijing", 
+            (31.2304, 121.4737): "Shanghai",
+            (22.3193, 114.1694): "Hong Kong",
+            (23.1291, 113.2644): "Guangzhou",
+            (29.5647, 106.5507): "Chongqing",
+            (30.5728, 104.0668): "Chengdu",
+            (36.0611, 120.3785): "Qingdao",
+            (38.0428, 114.5149): "Shijiazhuang",
+            (34.3416, 108.9398): "Xi'an"
         }
         
-        # 查找最接近的城市
         for (city_lat, city_lon), city_name in city_mapping.items():
             if abs(lat - city_lat) < 0.5 and abs(lon - city_lon) < 0.5:
                 return city_name
         
-        # 如果没找到精确匹配，返回坐标信息
-        return f"位置({lat:.4f}, {lon:.4f})"
+        return f"Location({lat:.4f}, {lon:.4f})"
     
     def _get_region_info(self, lat: float, lon: float) -> str:
-        """根据坐标获取地区信息"""
+        """Get region info from coordinates"""
         if 20 <= lat <= 50 and 100 <= lon <= 130:
-            return "中国东部地区"
+            return "East China region"
         elif 20 <= lat <= 50 and 70 <= lon <= 100:
-            return "中国西部地区"
+            return "West China region"
         elif 20 <= lat <= 50 and 110 <= lon <= 125:
-            return "中国东南沿海地区"
+            return "Southeast coastal China"
         else:
-            return "其他地区"
+            return "Other region"
     
     def _convert_json_to_human_text(self, analysis_json: dict) -> str:
-        """将JSON格式的分析结果转换为人类语言"""
+        """Convert JSON-formatted analysis to human-readable text"""
         try:
             overall_score = analysis_json.get('overall_score', 0)
             
-            # 构建人类语言描述
-            human_text = f"**综合评分**: {overall_score}/10分\n\n"
-            human_text += "**各维度详细分析**:\n\n"
+            human_text = f"**Overall score**: {overall_score}/10\n\n"
+            human_text += "**Dimension details**:\n\n"
             
-            # 处理各个维度
             dimensions = [
-                ('energy_supply', '能源供应与成本'),
-                ('network_connectivity', '网络连接性'),
-                ('geographic_environment', '地理与环境条件'),
-                ('policy_regulations', '政策与法规环境'),
-                ('infrastructure', '基础设施与配套'),
-                ('human_resources', '人力资源与人才池'),
-                ('socio_economic', '社会经济稳定性'),
-                ('business_ecosystem', '商业生态与市场临近度')
+                ('energy_supply', 'Energy supply & cost'),
+                ('network_connectivity', 'Network connectivity'),
+                ('geographic_environment', 'Geography & environment'),
+                ('policy_regulations', 'Policy & regulation'),
+                ('infrastructure', 'Infrastructure & utilities'),
+                ('human_resources', 'Human resources'),
+                ('socio_economic', 'Socioeconomic stability'),
+                ('business_ecosystem', 'Business ecosystem & proximity')
             ]
             
             for i, (key, name) in enumerate(dimensions, 1):
                 if key in analysis_json:
                     dim_data = analysis_json[key]
                     score = dim_data.get('score', 0)
-                    analysis = dim_data.get('analysis', '暂无分析')
-                    human_text += f"{i}. **{name}** ({score}/10分): {analysis}\n\n"
+                    analysis = dim_data.get('analysis', 'No analysis')
+                    human_text += f"{i}. **{name}** ({score}/10): {analysis}\n\n"
             
-            # 添加建议和风险
             if 'recommendations' in analysis_json:
-                human_text += f"**综合建议**: {analysis_json['recommendations']}\n\n"
+                human_text += f"**Recommendations**: {analysis_json['recommendations']}\n\n"
             
             if 'key_risks' in analysis_json:
-                human_text += f"**关键风险**: {analysis_json['key_risks']}\n\n"
+                human_text += f"**Key risks**: {analysis_json['key_risks']}\n\n"
             
             if 'next_steps' in analysis_json:
-                human_text += f"**下一步行动**: {analysis_json['next_steps']}\n"
+                human_text += f"**Next steps**: {analysis_json['next_steps']}\n"
             
             return human_text
             
         except Exception as e:
-            return f"分析结果转换失败: {str(e)}"
+            return f"Failed to convert analysis: {str(e)}"
 
     async def test_api_connection(self) -> Dict[str, Any]:
         """
-        测试API连接
+        Test API connectivity
         
         Returns:
-            连接测试结果
+            Connectivity result
         """
-        # 尝试不同模型
         models_to_try = [
-            "gpt-4o",          # 首选
-            "gpt-4o-mini",    # 备选
-            "qwen-vl-max"     # 兼容
+            "gpt-4o",          # preferred
+            "gpt-4o-mini",    # fallback
+            "qwen-vl-max"     # compatible
         ]
         
         for model in models_to_try:
@@ -452,22 +405,22 @@ class MultimodalAnalysisService:
                     max_tokens=8000
                 )
                 
-                # 如果成功，更新模型
+                # On success, update model
                 self.model = model
                 
                 return {
                     "success": True,
-                    "message": f"API连接正常，使用模型: {model}",
+                    "message": f"API connection OK, using model: {model}",
                     "model": model,
                     "timestamp": datetime.now().isoformat()
                 }
                 
             except Exception as e:
-                print(f"模型 {model} 不可用: {e}")
+                print(f"Model {model} unavailable: {e}")
                 continue
         
         return {
             "success": False,
-            "error": "所有模型都不可用，请检查配额或联系服务提供商",
+            "error": "All models unavailable; check quota or provider",
             "timestamp": datetime.now().isoformat()
         }

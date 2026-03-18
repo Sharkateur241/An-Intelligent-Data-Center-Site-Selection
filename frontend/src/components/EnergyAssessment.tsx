@@ -14,6 +14,21 @@ interface EnergyAssessmentProps {
   data: any;
 }
 
+const translateLevel = (val?: string) => {
+  if (val === '高') return 'High';
+  if (val === '中') return 'Medium';
+  if (val === '低') return 'Low';
+  return val || '';
+};
+
+const translateGridStability = (val?: string) => {
+  if (val === '充足') return 'Sufficient';
+  if (val === '良好') return 'Good';
+  if (val === '紧张') return 'Tight';
+  if (val === '差') return 'Poor';
+  return val || '';
+};
+
 const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
   if (!data) {
     return (
@@ -21,9 +36,9 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
         <div style={{ textAlign: 'center', padding: '50px' }}>
           <ThunderboltOutlined style={{ fontSize: '48px', color: '#ccc' }} />
           <Title level={4} style={{ color: '#ccc', marginTop: '16px' }}>
-            暂无能源评估数据
+            No energy assessment data
           </Title>
-          <Text type="secondary">请先进行位置分析</Text>
+          <Text type="secondary">Run a location analysis first</Text>
         </div>
       </Card>
     );
@@ -31,7 +46,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
 
   const { energy_assessment } = data;
 
-  // 准备图表数据
+  // Prepare chart data
   const landUseData = data.land_analysis?.land_use_distribution ? 
     Object.entries(data.land_analysis.land_use_distribution).map(([name, value]: [string, any]) => ({
       name,
@@ -41,17 +56,17 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
 
   const energySourceData = [
     {
-      name: '太阳能',
+      name: 'Solar',
       value: energy_assessment?.renewable_potential?.solar_potential?.annual_generation_mwh || 0,
       color: '#faad14'
     },
     {
-      name: '风能',
+      name: 'Wind',
       value: energy_assessment?.renewable_potential?.wind_potential?.annual_generation_mwh || 0,
       color: '#1890ff'
     },
     {
-      name: '传统电网',
+      name: 'Grid',
       value: 100000 - (energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh || 0),
       color: '#ff7875'
     }
@@ -59,29 +74,29 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
 
   const storageColumns = [
     {
-      title: '储能技术',
+      title: 'Storage technology',
       dataIndex: 'technology',
       key: 'technology',
     },
     {
-      title: '容量 (MWh)',
+      title: 'Capacity (MWh)',
       dataIndex: 'capacity_mwh',
       key: 'capacity_mwh',
     },
     {
-      title: '效率',
+      title: 'Efficiency',
       dataIndex: 'efficiency',
       key: 'efficiency',
       render: (efficiency: number) => `${(efficiency * 100).toFixed(1)}%`
     },
     {
-      title: '成本 (万元)',
+      title: 'Cost (10k RMB)',
       dataIndex: 'cost',
       key: 'cost',
       render: (cost: number) => (cost / 10000).toFixed(0)
     },
     {
-      title: '寿命 (年)',
+      title: 'Lifetime (yr)',
       dataIndex: 'lifetime',
       key: 'lifetime',
     },
@@ -91,14 +106,14 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
 
   return (
     <div>
-      <Title level={2}>能源资源详细评估</Title>
+      <Title level={2}>Energy Resources Detailed Assessment</Title>
       
-      {/* 能源资源概览 */}
-      <Card title="能源资源概览" style={{ marginBottom: 16 }}>
+      {/* Energy overview */}
+      <Card title="Energy Overview" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="太阳能年辐射量"
+              title="Annual solar irradiance"
               value={energy_assessment?.solar_data?.annual_irradiance || 0}
               suffix="kWh/m²"
               prefix={<ThunderboltOutlined style={{ color: '#faad14' }} />}
@@ -106,7 +121,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="平均风速"
+              title="Average wind speed"
               value={energy_assessment?.wind_data?.average_speed || 0}
               suffix="m/s"
               prefix={<EnvironmentOutlined style={{ color: '#1890ff' }} />}
@@ -114,15 +129,15 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           </Col>
           <Col span={6}>
             <Statistic
-              title="可再生能源潜力"
+              title="Renewable potential"
               value={energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh || 0}
-              suffix="MWh/年"
+              suffix="MWh/yr"
               prefix={<BulbOutlined style={{ color: '#52c41a' }} />}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="可再生能源覆盖率"
+              title="Renewable coverage"
               value={(energy_assessment?.storage_assessment?.renewable_coverage * 100 || 0).toFixed(1)}
               suffix="%"
               prefix={<FireOutlined style={{ color: '#ff7875' }} />}
@@ -131,8 +146,8 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
         </Row>
       </Card>
 
-      {/* 土地利用分布 */}
-      <Card title="土地利用分布" style={{ marginBottom: 16 }}>
+      {/* Land use distribution */}
+      <Card title="Land Use Distribution" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={12}>
             <ResponsiveContainer width="100%" height={300}>
@@ -156,7 +171,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             </ResponsiveContainer>
           </Col>
           <Col span={12}>
-            <Title level={4}>土地类型详情</Title>
+            <Title level={4}>Land cover details</Title>
             {landUseData.map((item, index) => (
               <div key={index} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -185,8 +200,8 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
         </Row>
       </Card>
 
-      {/* 能源结构分析 */}
-      <Card title="能源结构分析" style={{ marginBottom: 16 }}>
+      {/* Energy mix analysis */}
+      <Card title="Energy Mix Analysis" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={12}>
             <ResponsiveContainer width="100%" height={300}>
@@ -200,36 +215,36 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             </ResponsiveContainer>
           </Col>
           <Col span={12}>
-            <Title level={4}>能源配置建议</Title>
+            <Title level={4}>Energy Configuration Recommendations</Title>
             <div style={{ marginBottom: 16 }}>
-              <Text strong>太阳能发电:</Text>
+              <Text strong>Solar power:</Text>
               <div style={{ marginLeft: 16 }}>
-                <Text>• 装机容量: {energy_assessment?.renewable_potential?.solar_potential?.capacity_mw?.toFixed(1)} MW</Text><br />
-                <Text>• 年发电量: {energy_assessment?.renewable_potential?.solar_potential?.annual_generation_mwh?.toFixed(0)} MWh</Text><br />
-                <Text>• 土地需求: {(energy_assessment?.renewable_potential?.solar_potential?.land_requirement / 10000).toFixed(1)} 公顷</Text>
+                <Text>• Installed capacity: {energy_assessment?.renewable_potential?.solar_potential?.capacity_mw?.toFixed(1)} MW</Text><br />
+                <Text>• Annual generation: {energy_assessment?.renewable_potential?.solar_potential?.annual_generation_mwh?.toFixed(0)} MWh</Text><br />
+                <Text>• Land requirement: {(energy_assessment?.renewable_potential?.solar_potential?.land_requirement / 10000).toFixed(1)} ha</Text>
               </div>
             </div>
             
             <div style={{ marginBottom: 16 }}>
-              <Text strong>风力发电:</Text>
+              <Text strong>Wind power:</Text>
               <div style={{ marginLeft: 16 }}>
-                <Text>• 装机容量: {energy_assessment?.renewable_potential?.wind_potential?.capacity_mw?.toFixed(1)} MW</Text><br />
-                <Text>• 年发电量: {energy_assessment?.renewable_potential?.wind_potential?.annual_generation_mwh?.toFixed(0)} MWh</Text><br />
-                <Text>• 土地需求: {(energy_assessment?.renewable_potential?.wind_potential?.land_requirement / 10000).toFixed(1)} 公顷</Text>
+                <Text>• Installed capacity: {energy_assessment?.renewable_potential?.wind_potential?.capacity_mw?.toFixed(1)} MW</Text><br />
+                <Text>• Annual generation: {energy_assessment?.renewable_potential?.wind_potential?.annual_generation_mwh?.toFixed(0)} MWh</Text><br />
+                <Text>• Land requirement: {(energy_assessment?.renewable_potential?.wind_potential?.land_requirement / 10000).toFixed(1)} ha</Text>
               </div>
             </div>
           </Col>
         </Row>
       </Card>
 
-      {/* 储能系统评估 */}
-      <Card title="储能系统评估" style={{ marginBottom: 16 }}>
+      {/* Storage system assessment */}
+      <Card title="Storage System Assessment" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={12}>
-            <Title level={4}>储能需求分析</Title>
+            <Title level={4}>Storage Needs</Title>
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>应急备用电源</Text>
+                <Text>Emergency backup</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.emergency_backup?.toFixed(0)} MWh</Text>
               </div>
               <Progress 
@@ -241,7 +256,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>削峰填谷</Text>
+                <Text>Peak shaving</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.peak_shaving?.toFixed(0)} MWh</Text>
               </div>
               <Progress 
@@ -253,7 +268,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>电网稳定</Text>
+                <Text>Grid stabilization</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.grid_stabilization?.toFixed(0)} MWh</Text>
               </div>
               <Progress 
@@ -265,7 +280,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>总储能需求</Text>
+                <Text>Total storage required</Text>
                 <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
                   {energy_assessment?.storage_assessment?.storage_needs?.total_required?.toFixed(0)} MWh
                 </Text>
@@ -278,7 +293,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
             </div>
           </Col>
           <Col span={12}>
-            <Title level={4}>推荐储能技术</Title>
+            <Title level={4}>Recommended Storage Technologies</Title>
             <Table
               columns={storageColumns}
               dataSource={energy_assessment?.storage_assessment?.recommended_technologies || []}
@@ -289,13 +304,13 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
         </Row>
       </Card>
 
-      {/* 电网接入评估 */}
-      <Card title="电网接入评估">
+      {/* Grid interconnection assessment */}
+      <Card title="Grid Interconnection Assessment">
         <Row gutter={16}>
           <Col span={8}>
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4}>可用容量</Title>
+                <Title level={4}>Available capacity</Title>
                 <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
                   {energy_assessment?.grid_assessment?.available_capacity} MW
                 </Text>
@@ -305,7 +320,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={8}>
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4}>电压等级</Title>
+                <Title level={4}>Voltage level</Title>
                 <Text strong style={{ fontSize: '18px' }}>
                   {energy_assessment?.grid_assessment?.voltage_level}
                 </Text>
@@ -315,7 +330,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={8}>
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4}>电网稳定性</Title>
+                <Title level={4}>Grid stability</Title>
                 <Tag 
                   color={
                     energy_assessment?.grid_assessment?.grid_stability === '充足' ? 'green' :
@@ -324,7 +339,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
                   }
                   style={{ fontSize: '14px' }}
                 >
-                  {energy_assessment?.grid_assessment?.grid_stability}
+                  {translateGridStability(energy_assessment?.grid_assessment?.grid_stability)}
                 </Tag>
               </div>
             </Card>
@@ -333,7 +348,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
         
         {energy_assessment?.recommendations && (
           <div style={{ marginTop: 16 }}>
-            <Title level={4}>能源配置建议</Title>
+            <Title level={4}>Energy Recommendations</Title>
             {energy_assessment.recommendations.map((recommendation: string, index: number) => (
               <div key={index} style={{ 
                 padding: '8px 12px', 

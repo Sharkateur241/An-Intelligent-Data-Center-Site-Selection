@@ -1,5 +1,5 @@
 """
-供电方案AI分析服务 - 使用OpenAI官方库进行智能供电方案分析
+Power Supply Solution AI Analysis Service - Intelligent power supply solution analysis using the official OpenAI library
 """
 
 import asyncio
@@ -9,81 +9,81 @@ from openai import OpenAI
 import os
 
 class PowerSupplyAIAnalysisService:
-    """供电方案AI分析服务类"""
+    """Power Supply Solution AI Analysis Service Class"""
     
     def __init__(self):
-        """初始化供电方案AI分析服务"""
-        # 设置代理
-        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
+        """Initialize the power supply solution AI analysis service"""
+        # Set proxy
+        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:1082'
+        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:1082'
         
         self.client = OpenAI(
-            base_url='https://api.gptplus5.com/v1',
-            api_key=os.environ.get('OPENAI_API_KEY', 'sk-abaWwmXxZ2Mtw9GwLHKNI81Mxpsj9RVj5IapLh8mzoP4LfAR')
+            base_url='https://api.openai.com/v1',
+            api_key=os.getenv('OPENAI_API_KEY')
         )
         self.model = "gpt-4o-2024-08-06"
         
-        # 供电方案分析专用prompt模板
+        # Dedicated prompt template for power supply solution analysis
         self.power_supply_prompt = """
-基于提供的卫星图像和地理位置信息，请进行数据中心供电方案的专业评估：
+Based on the provided satellite image and geographic location information, please conduct a professional evaluation of the data center power supply solution:
 
-1. **电网接入分析**
-   - 基于地理位置评估周边电网设施分布
-   - 分析电网接入距离和建设成本
-   - 评估电网容量和供电可靠性
-   - 给出电网接入可行性评分（1-10分）
+1. **Grid Access Analysis**
+   - Evaluate the distribution of surrounding grid infrastructure based on geographic location
+   - Analyze grid access distance and construction costs
+   - Assess grid capacity and power supply reliability
+   - Provide a grid access feasibility score (1-10)
 
-2. **可再生能源供电潜力**
-   - 根据地理位置和地形特征评估太阳能发电潜力
-   - 基于区域风资源评估风能发电可行性
-   - 分析水能发电资源条件
-   - 计算可再生能源供电比例建议
+2. **Renewable Energy Supply Potential**
+   - Assess solar power generation potential based on geographic location and terrain
+   - Evaluate wind power generation feasibility based on regional wind resources
+   - Analyze hydropower resource conditions
+   - Calculate recommended renewable energy supply ratio
 
-3. **传统能源供电方案**
-   - 评估天然气发电站建设适宜性
-   - 分析燃煤发电环境影响和成本
-   - 评估核能发电站选址条件
-   - 比较传统能源供电经济性
+3. **Conventional Energy Supply Solutions**
+   - Assess suitability for natural gas power plant construction
+   - Analyze environmental impact and costs of coal-fired power generation
+   - Evaluate site conditions for nuclear power plant placement
+   - Compare economic viability of conventional energy supply
 
-4. **最优供电组合方案**
-   - 推荐技术经济性最佳的供电组合
-   - 分析供电系统可靠性和稳定性
-   - 评估总体供电成本（建设+运营）
-   - 提供供电方案优化配置建议
+4. **Optimal Power Supply Combination Plan**
+   - Recommend the most technically and economically optimal power supply combination
+   - Analyze reliability and stability of the power supply system
+   - Evaluate total power supply costs (construction + operation)
+   - Provide optimization configuration recommendations for the power supply plan
 
-5. **供电保障与冗余设计**
-   - 识别关键备用电源配置需求
-   - 评估储能系统容量和类型选择
-   - 设计供电冗余和应急保障方案
-   - 提供供电安全可靠性提升建议
+5. **Power Supply Assurance & Redundancy Design**
+   - Identify critical backup power configuration requirements
+   - Evaluate energy storage system capacity and type selection
+   - Design power supply redundancy and emergency assurance plan
+   - Provide recommendations to improve power supply safety and reliability
 
-请基于专业分析提供详细的技术评估结果和具体实施建议，确保回答专业、实用且具有可操作性。
+Please provide detailed technical evaluation results and specific implementation recommendations based on professional analysis, ensuring the response is professional, practical, and actionable.
 """
     
     async def analyze_power_supply_ai(self, satellite_data: Dict[str, Any], 
                                     power_demand: float = 100,
                                     custom_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
-        使用AI分析供电方案
+        Analyze power supply solutions using AI
         
         Args:
-            satellite_data: 卫星数据
-            power_demand: 电力需求（MW）
-            custom_prompt: 自定义分析提示词
+            satellite_data: Satellite data
+            power_demand: Power demand (MW)
+            custom_prompt: Custom analysis prompt
             
         Returns:
-            AI供电方案分析结果
+            AI power supply solution analysis results
         """
         try:
             image_url = satellite_data.get("url") or satellite_data.get("image_url", "")
             if not image_url:
                 return {
                     "success": False,
-                    "error": "无法获取卫星图像URL",
+                    "error": "Unable to retrieve satellite image URL",
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 获取地理元数据
+            # Get geographic metadata
             metadata = satellite_data.get("metadata", {})
             location_info = {
                 "center": metadata.get("center", []),
@@ -92,16 +92,16 @@ class PowerSupplyAIAnalysisService:
                 "resolution": metadata.get("resolution", "Unknown")
             }
             
-            # 构建增强的供电分析prompt
+            # Build enhanced power supply analysis prompt
             enhanced_prompt = self._build_power_supply_prompt(
                 location_info, power_demand, custom_prompt
             )
             
-            # 调用AI分析
+            # Call AI analysis
             ai_result = await self._call_ai_analysis(image_url, enhanced_prompt)
             
             if ai_result["success"]:
-                ai_result["analysis_type"] = "AI供电方案分析"
+                ai_result["analysis_type"] = "AI Power Supply Solution Analysis"
                 ai_result["location_info"] = location_info
                 ai_result["power_demand"] = power_demand
                 ai_result["gee_metadata"] = metadata
@@ -111,37 +111,37 @@ class PowerSupplyAIAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI供电方案分析失败: {str(e)}",
+                "error": f"AI power supply solution analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     def _build_power_supply_prompt(self, location_info: Dict[str, Any], 
                                   power_demand: float,
                                   custom_prompt: Optional[str] = None) -> str:
-        """构建供电方案分析专用prompt"""
+        """Build a dedicated prompt for power supply solution analysis"""
         if custom_prompt:
             base_prompt = custom_prompt
         else:
             base_prompt = self.power_supply_prompt
         
-        # 添加地理位置和电力需求信息
+        # Add geographic location and power demand information
         context = f"""
-地理位置和需求信息：
-- 坐标: {location_info.get('center', [])}
-- 分析半径: {location_info.get('radius', 0)}米
-- 数据源: {location_info.get('data_source', 'Unknown')}
-- 分辨率: {location_info.get('resolution', 'Unknown')}
-- 电力需求: {power_demand}MW
+Geographic Location and Demand Information:
+- Coordinates: {location_info.get('center', [])}
+- Analysis Radius: {location_info.get('radius', 0)} meters
+- Data Source: {location_info.get('data_source', 'Unknown')}
+- Resolution: {location_info.get('resolution', 'Unknown')}
+- Power Demand: {power_demand} MW
 
-请结合这些信息，对供电方案进行更准确的分析。
+Please combine this information to provide a more accurate analysis of the power supply solution.
 """
         
         return base_prompt + "\n\n" + context
     
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
-        """调用AI分析API"""
+        """Call the AI analysis API"""
         try:
-            # 使用OpenAI官方库进行API调用
+            # Use the official OpenAI library for API calls
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -153,7 +153,7 @@ class PowerSupplyAIAnalysisService:
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_url,
-                                    "detail": "high"  # 使用low减少上下文长度
+                                    "detail": "high"  # Use low to reduce context length
                                 }
                             }
                         ]
@@ -161,7 +161,7 @@ class PowerSupplyAIAnalysisService:
                 ],
                 max_tokens=8000,
                 temperature=0.3,
-                timeout=180  # 2分钟超时
+                timeout=180  # 2-minute timeout
             )
             
             analysis_text = response.choices[0].message.content
@@ -178,20 +178,20 @@ class PowerSupplyAIAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI分析调用失败: {str(e)}",
+                "error": f"AI analysis call failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     async def test_api_connection(self) -> Dict[str, Any]:
-        """测试API连接"""
+        """Test API connection"""
         try:
-            # 简单的API连接测试
+            # Simple API connection test
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
                         "role": "user",
-                        "content": "请回复'API连接正常'"
+                        "content": "Please reply with 'API connection successful'"
                     }
                 ],
                 max_tokens=8000,
@@ -201,13 +201,13 @@ class PowerSupplyAIAnalysisService:
             
             return {
                 "success": True,
-                "message": "API连接正常",
+                "message": "API connection successful",
                 "timestamp": datetime.now().isoformat()
             }
             
         except Exception as e:
             return {
                 "success": False,
-                "error": f"API连接失败: {str(e)}",
+                "error": f"API connection failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }

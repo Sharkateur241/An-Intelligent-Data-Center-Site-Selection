@@ -16,8 +16,8 @@ timeout /t 3 /nobreak >nul
 echo.
 echo 🔄 重新启动系统...
 echo 设置代理...
-set HTTP_PROXY=http://127.0.0.1:7897
-set HTTPS_PROXY=http://127.0.0.1:7897
+set HTTP_PROXY=http://127.0.0.1:1082
+set HTTPS_PROXY=http://127.0.0.1:1082
 
 echo 启动基础AI分析模式...
 copy "frontend\src\App_simple.tsx" "frontend\src\App.tsx" >nul

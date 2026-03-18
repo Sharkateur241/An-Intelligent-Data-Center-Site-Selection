@@ -1,5 +1,5 @@
 """
-能源资源AI分析服务 - 使用OpenAI官方库进行智能能源评估
+Energy resource AI analysis service - intelligent energy assessment using the OpenAI SDK
 """
 
 import asyncio
@@ -12,11 +12,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from config import config
 
 class EnergyAIAnalysisService:
-    """能源资源AI分析服务类"""
+    """Energy resource AI analysis service class"""
     
     def __init__(self):
-        """初始化能源AI分析服务"""
-        # 设置代理和API密钥
+        """Initialize energy AI analysis service"""
+        # Configure proxy and API key
         config.setup_proxy()
         config.setup_openai_key()
         
@@ -26,75 +26,75 @@ class EnergyAIAnalysisService:
         )
         self.model = "gpt-4o-2024-08-06"
         
-        # 能源分析专用prompt模板
+        # Energy analysis prompt template
         self.energy_prompt = """
-请分析这张卫星图像，从能源资源角度评估数据中心的可再生能源潜力：
+Analyze this satellite image and assess the renewable energy potential for data center siting from an energy resource perspective:
 
-1. **太阳能资源评估**
-   - 识别地形平坦度，评估光伏板安装适宜性
-   - 分析云层覆盖情况，评估日照条件
-   - 识别阴影区域（山脉、建筑等）
-   - 评估太阳能发电潜力（1-10分）
+1. **Solar energy assessment**
+   - Identify terrain flatness and assess suitability for photovoltaic panel installation
+   - Analyze cloud cover and evaluate solar irradiance conditions
+   - Identify shadow areas (mountains, buildings, etc.)
+   - Rate solar generation potential (1–10)
 
-2. **风能资源评估**
-   - 识别地形特征，评估风力条件
-   - 分析海拔高度对风能的影响
-   - 识别风力发电适宜区域
-   - 评估风能发电潜力（1-10分）
+2. **Wind energy assessment**
+   - Identify terrain features and evaluate wind conditions
+   - Analyze the effect of altitude on wind energy
+   - Identify suitable areas for wind power generation
+   - Rate wind generation potential (1–10)
 
-3. **水能资源评估**
-   - 识别河流、湖泊等水体
-   - 分析水体规模和水能潜力
-   - 评估水力发电可行性
-   - 评估水能发电潜力（1-10分）
+3. **Hydro energy assessment**
+   - Identify rivers, lakes and other water bodies
+   - Analyze water body scale and hydro potential
+   - Evaluate feasibility of hydroelectric generation
+   - Rate hydro generation potential (1–10)
 
-4. **地热能评估**
-   - 分析地质构造特征
-   - 识别地热资源潜力区域
-   - 评估地热能利用可行性
-   - 评估地热能潜力（1-10分）
+4. **Geothermal energy assessment**
+   - Analyze geological structural features
+   - Identify areas with geothermal resource potential
+   - Evaluate feasibility of geothermal energy utilization
+   - Rate geothermal potential (1–10)
 
-5. **综合能源建议**
-   - 推荐最佳能源组合方案
-   - 提供具体的能源配置建议
-   - 评估能源自给自足能力
-   - 给出能源成本预估
+5. **Comprehensive energy recommendations**
+   - Recommend the optimal energy mix
+   - Provide specific energy configuration advice
+   - Assess energy self-sufficiency capability
+   - Estimate energy costs
 
-请提供详细的分析结果和具体建议，使用中文回答。
+Please provide detailed analysis results and specific recommendations in English.
 """
     
     async def analyze_energy_resources_ai(self, satellite_data: Dict[str, Any], 
                                         custom_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
-        使用AI分析能源资源
+        Analyze energy resources using AI
         
         Args:
-            satellite_data: 卫星数据
-            custom_prompt: 自定义分析提示词
+            satellite_data: Satellite data
+            custom_prompt: Custom analysis prompt
             
         Returns:
-            AI能源分析结果
+            AI energy analysis result
         """
         try:
             image_url = satellite_data.get("url") or satellite_data.get("image_url", "")
-            print(f"🔍 能源AI分析 - 图像URL: {image_url[:50] if image_url else 'None'}...")
+            print(f"🔍 Energy AI analysis - image URL: {image_url[:50] if image_url else 'None'}...")
             
             if not image_url:
                 return {
                     "success": False,
-                    "error": "无法获取卫星图像URL",
+                    "error": "Unable to retrieve satellite image URL",
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 检查图像URL格式
+            # Validate image URL format
             if not (image_url.startswith("data:image/") or image_url.startswith("https://")):
                 return {
                     "success": False,
-                    "error": f"图像URL格式不正确: {image_url[:50]}...",
+                    "error": f"Invalid image URL format: {image_url[:50]}...",
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 获取地理元数据
+            # Retrieve geographic metadata
             metadata = satellite_data.get("metadata", {})
             location_info = {
                 "center": metadata.get("center", []),
@@ -103,14 +103,14 @@ class EnergyAIAnalysisService:
                 "resolution": metadata.get("resolution", "Unknown")
             }
             
-            # 构建增强的能源分析prompt
+            # Build enhanced energy analysis prompt
             enhanced_prompt = self._build_energy_prompt(location_info, custom_prompt)
             
-            # 调用AI分析
+            # Call AI analysis
             ai_result = await self._call_ai_analysis(image_url, enhanced_prompt)
             
             if ai_result["success"]:
-                ai_result["analysis_type"] = "AI能源资源分析"
+                ai_result["analysis_type"] = "AI energy resource analysis"
                 ai_result["location_info"] = location_info
                 ai_result["gee_metadata"] = metadata
             
@@ -119,35 +119,35 @@ class EnergyAIAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI能源分析失败: {str(e)}",
+                "error": f"AI energy analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     def _build_energy_prompt(self, location_info: Dict[str, Any], 
                            custom_prompt: Optional[str] = None) -> str:
-        """构建能源分析专用prompt"""
+        """Build energy analysis prompt"""
         if custom_prompt:
             base_prompt = custom_prompt
         else:
             base_prompt = self.energy_prompt
         
-        # 添加地理位置信息
+        # Add geographic location info
         location_context = f"""
-地理位置信息：
-- 坐标: {location_info.get('center', [])}
-- 分析半径: {location_info.get('radius', 0)}米
-- 数据源: {location_info.get('data_source', 'Unknown')}
-- 分辨率: {location_info.get('resolution', 'Unknown')}
+Geographic location info:
+- Coordinates: {location_info.get('center', [])}
+- Analysis radius: {location_info.get('radius', 0)} meters
+- Data source: {location_info.get('data_source', 'Unknown')}
+- Resolution: {location_info.get('resolution', 'Unknown')}
 
-请结合这些地理信息，对能源资源进行更准确的分析。
+Please use this geographic information for a more accurate energy resource analysis.
 """
         
         return base_prompt + "\n\n" + location_context
     
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
-        """调用AI分析API"""
+        """Call AI analysis API"""
         try:
-            # 使用OpenAI官方库进行API调用
+            # Call API using the official OpenAI SDK
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -159,7 +159,7 @@ class EnergyAIAnalysisService:
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_url,
-                                    "detail": "high"  # 使用low减少上下文长度
+                                    "detail": "high"
                                 }
                             }
                         ]
@@ -167,7 +167,7 @@ class EnergyAIAnalysisService:
                 ],
                 max_tokens=8000,
                 temperature=0.3,
-                timeout=180  # 2分钟超时
+                timeout=180  # 3 minute timeout
             )
             
             analysis_text = response.choices[0].message.content
@@ -178,67 +178,67 @@ class EnergyAIAnalysisService:
                 "model": self.model,
                 "timestamp": datetime.now().isoformat(),
                 "image_url": image_url,
-                "api_provider": "GPTPlus5"
+                "api_provider": "OpenAI"
             }
                 
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI分析调用失败: {str(e)}",
+                "error": f"AI analysis call failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     async def analyze_heat_utilization_ai(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
-        """AI分析余热利用"""
+        """AI analysis of waste heat utilization"""
         heat_prompt = """
-请分析这张卫星图像，评估数据中心余热利用潜力：
+Analyze this satellite image and evaluate the waste heat utilization potential for a data center:
 
-1. **余热回收评估**
-   - 识别周边工业设施和热需求区域
-   - 分析热传输距离和可行性
-   - 评估余热利用的经济价值
+1. **Waste heat recovery assessment**
+   - Identify surrounding industrial facilities and heat demand areas
+   - Analyze heat transmission distance and feasibility
+   - Evaluate the economic value of waste heat utilization
 
-2. **热网建设分析**
-   - 分析热网建设的地形条件
-   - 评估热网投资成本
-   - 识别潜在的热用户
+2. **District heating network analysis**
+   - Analyze terrain conditions for heating network construction
+   - Evaluate heating network investment cost
+   - Identify potential heat consumers
 
-3. **综合建议**
-   - 推荐最佳余热利用方案
-   - 提供经济效益分析
-   - 给出实施建议
+3. **Comprehensive recommendations**
+   - Recommend the optimal waste heat utilization plan
+   - Provide economic benefit analysis
+   - Give implementation advice
 
-请提供详细的分析结果，使用中文回答。
+Please provide detailed analysis results in English.
 """
         
         return await self.analyze_energy_resources_ai(satellite_data, heat_prompt)
     
     async def analyze_geographic_environment_ai(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
-        """AI分析地理环境"""
+        """AI analysis of geographic environment"""
         geo_prompt = """
-请分析这张卫星图像，评估地理环境对数据中心建设的影响：
+Analyze this satellite image and assess the impact of the geographic environment on data center construction:
 
-1. **地形分析**
-   - 评估地形平坦度和稳定性
-   - 识别地质灾害风险区域
-   - 分析海拔高度影响
+1. **Terrain analysis**
+   - Assess terrain flatness and stability
+   - Identify geological hazard risk areas
+   - Analyze the impact of altitude
 
-2. **水文分析**
-   - 识别河流、湖泊等水体
-   - 评估洪水风险
-   - 分析水资源供应条件
+2. **Hydrological analysis**
+   - Identify rivers, lakes and other water bodies
+   - Evaluate flood risk
+   - Analyze water supply conditions
 
-3. **气候分析**
-   - 评估气候条件对数据中心的影响
-   - 分析温度、湿度等环境因素
-   - 识别极端天气风险
+3. **Climate analysis**
+   - Assess the impact of climate conditions on the data center
+   - Analyze environmental factors such as temperature and humidity
+   - Identify extreme weather risks
 
-4. **环境约束**
-   - 识别环境敏感区域
-   - 评估生态保护要求
-   - 分析环境合规性
+4. **Environmental constraints**
+   - Identify environmentally sensitive areas
+   - Evaluate ecological protection requirements
+   - Analyze environmental compliance
 
-请提供详细的分析结果，使用中文回答。
+Please provide detailed analysis results in English.
 """
         
         return await self.analyze_energy_resources_ai(satellite_data, geo_prompt)

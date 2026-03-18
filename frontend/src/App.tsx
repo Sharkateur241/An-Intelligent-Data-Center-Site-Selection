@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 import {
   MapContainer,
@@ -10,7 +10,6 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default Leaflet marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -19,8 +18,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Custom teal marker
-const tealIcon = new L.Icon({
+const pinIcon = new L.Icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -31,10 +29,37 @@ const tealIcon = new L.Icon({
 });
 
 interface AnalysisResult {
+  location: { latitude: number; longitude: number };
+  land_analysis: Record<string, any>;
+  energy_assessment: Record<string, any>;
+  decision_recommendation: Record<string, any>;
+  heat_utilization: Record<string, any>;
+  geographic_environment: Record<string, any>;
+  power_supply_analysis: Record<string, any>;
+  energy_storage_analysis: Record<string, any>;
+  promethee_mcgp_analysis: Record<string, any>;
+  ai_multimodal_analysis?: Record<string, any> | null;
+  ai_energy_analysis?: Record<string, any> | null;
+  ai_power_supply_analysis?: Record<string, any> | null;
+  ai_energy_storage_analysis?: Record<string, any> | null;
+  ai_decision_analysis?: Record<string, any> | null;
+}
+
+interface LocationRecommendation {
   latitude: number;
   longitude: number;
-  score?: number;
-  recommendation?: string;
+  distance_km: number;
+  suitability_score: number;
+  solar_zone?: string;
+  wind_zone?: string;
+  water?: string;
+  hazards?: string[];
+  rationale?: string;
+}
+
+interface LocationRecommendationResponse {
+  recommended_location: LocationRecommendation;
+  candidates: LocationRecommendation[];
 }
 
 interface ClickedLocation {
@@ -43,7 +68,6 @@ interface ClickedLocation {
   name?: string;
 }
 
-// Component that listens for map clicks
 function MapClickHandler({
   onLocationSelect,
 }: {
@@ -60,6 +84,151 @@ function MapClickHandler({
   return null;
 }
 
+function ScoreRing({ score, label }: { score: number; label: string }) {
+  const r = 54;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(score, 0), 100) / 100;
+  const color = score >= 80 ? "#22d3a5" : score >= 60 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div className="score-ring-wrap">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle
+          cx="70"
+          cy="70"
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth="10"
+        />
+        <circle
+          cx="70"
+          cy="70"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct)}
+          strokeLinecap="round"
+          transform="rotate(-90 70 70)"
+          className="ring-progress"
+        />
+        <text
+          x="70"
+          y="66"
+          textAnchor="middle"
+          className="ring-score"
+          fill={color}
+        >
+          {Math.round(score)}
+        </text>
+        <text
+          x="70"
+          y="84"
+          textAnchor="middle"
+          className="ring-label"
+          fill="rgba(255,255,255,0.4)"
+        >
+          {label}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function DataSection({
+  icon,
+  title,
+  data,
+  accent,
+  maxRows,
+}: {
+  icon: string;
+  title: string;
+  data: Record<string, any> | null | undefined;
+  accent?: string;
+  maxRows?: number;
+}) {
+  if (!data || typeof data !== "object") return null;
+  const flat = Object.entries(data).filter(
+    ([, v]) => v !== null && v !== undefined && typeof v !== "object"
+  );
+  if (flat.length === 0) return null;
+
+  const [expanded, setExpanded] = useState(false);
+  const visibleRows =
+    maxRows && !expanded ? flat.slice(0, maxRows) : flat;
+  const hiddenCount = maxRows ? Math.max(flat.length - maxRows, 0) : 0;
+
+  return (
+    <div className="ds-card" style={{ "--accent": accent || "#22d3a5" } as any}>
+      <div className="ds-head">
+        <span className="ds-icon">{icon}</span>
+        <span className="ds-title">{title}</span>
+      </div>
+      <div className="ds-grid">
+        {visibleRows.map(([k, v]) => (
+          <div key={k} className="ds-row">
+            <span className="ds-key">{k.replace(/_/g, " ")}</span>
+            <span className="ds-val">{String(v)}</span>
+          </div>
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <button className="ds-toggle" onClick={() => setExpanded(!expanded)}>
+          {expanded
+            ? "Show less"
+            : `Show more (${hiddenCount} hidden)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AICard({
+  icon,
+  title,
+  data,
+}: {
+  icon: string;
+  title: string;
+  data: Record<string, any> | null | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!data) return null;
+  const text =
+    data.analysis ||
+    data.summary ||
+    data.recommendation ||
+    data.content ||
+    data.error ||
+    (typeof data === "string" ? data : null);
+  if (!text) return null;
+
+  return (
+    <div
+      className={`ai-card ${open ? "open" : ""}`}
+      onClick={() => setOpen((o) => !o)}
+    >
+      <div className="ai-card-head">
+        <span className="ai-icon">{icon}</span>
+        <span className="ai-title">{title}</span>
+        <span className="ai-chevron">{open ? "▴" : "▾"}</span>
+      </div>
+      {open && <div className="ai-body">{String(text)}</div>}
+    </div>
+  );
+}
+
+function Verdict({ score }: { score: number }) {
+  if (score >= 80)
+    return <span className="verdict verdict-green">✦ Excellent Site</span>;
+  if (score >= 65)
+    return <span className="verdict verdict-amber">◈ Good Candidate</span>;
+  return <span className="verdict verdict-red">⚠ Needs Review</span>;
+}
+
 export default function App() {
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -69,111 +238,236 @@ export default function App() {
   const [error, setError] = useState("");
   const [clickedLocation, setClickedLocation] =
     useState<ClickedLocation | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [recommendation, setRecommendation] =
+    useState<LocationRecommendationResponse | null>(null);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState<string | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleLocationSelect = (lat: number, lng: number, name?: string) => {
     setLatitude(lat.toString());
     setLongitude(lng.toString());
     setClickedLocation({ lat, lng, name });
     setError("");
+    setResult(null);
   };
+
+  useEffect(() => {
+    if (loading) {
+      setProgress(0);
+      const steps = [8, 20, 35, 50, 65, 78, 88, 95];
+      let i = 0;
+      const iv = setInterval(() => {
+        if (i < steps.length) {
+          setProgress(steps[i]);
+          i++;
+        } else clearInterval(iv);
+      }, 1800);
+      return () => clearInterval(iv);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      setTimeout(
+        () =>
+          resultsRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          }),
+        100
+      );
+    }
+  }, [result]);
+
+  useEffect(() => {
+    if (!result) return;
+    const score = computeOverallScore(result);
+    if (score !== null && score < 50) {
+      fetchRecommendation(result.location.latitude, result.location.longitude);
+    } else {
+      setRecommendation(null);
+      setRecError(null);
+    }
+  }, [result]);
 
   const startAnalysis = async () => {
     if (!latitude || !longitude) {
-      setError("⚠ Please select a location on the map or enter coordinates.");
+      setError("Select a location on the map or enter coordinates.");
       return;
     }
     setError("");
+    setResult(null);
+    setRecommendation(null);
+    setRecError(null);
+    setRecLoading(false);
     setLoading(true);
-    setTimeout(() => {
-      const score = Math.floor(Math.random() * 40) + 60; // 60-100 range
-      setResult({
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        score,
-        recommendation:
-          score >= 80
-            ? "Excellent site candidate. High energy grid accessibility, low seismic risk, favorable climate stability, and strong connectivity infrastructure detected in this region."
-            : score >= 70
-            ? "Good site candidate. Moderate climate conditions and reasonable infrastructure. Further on-ground survey recommended before final selection."
-            : "Acceptable site with notable constraints. Review local energy costs, flood risk, and connectivity availability before proceeding.",
+    try {
+      const response = await fetch("/analyze/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          radius: Number(radius),
+          city_name: clickedLocation?.name || null,
+        }),
       });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`Server ${response.status}: ${detail}`);
+      }
+      const data: AnalysisResult = await response.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(`Connection failed: ${err.message}`);
+    } finally {
       setLoading(false);
-    }, 2000);
+      setProgress(100);
+    }
   };
 
+  const fetchRecommendation = async (lat: number, lon: number) => {
+    setRecLoading(true);
+    setRecError(null);
+    try {
+      const resp = await fetch("/recommend/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lon,
+          search_radius_km: 100,
+          samples: 14,
+        }),
+      });
+      if (!resp.ok) {
+        const t = await resp.text();
+        throw new Error(t || `Server ${resp.status}`);
+      }
+      const data: LocationRecommendationResponse = await resp.json();
+      setRecommendation(data);
+    } catch (err: any) {
+      setRecError(err.message);
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const overallScore =
+    result?.promethee_mcgp_analysis?.overall_score ??
+    result?.decision_recommendation?.overall_score ??
+    null;
+  const energyScore =
+    result?.energy_assessment?.renewable_score ??
+    result?.energy_assessment?.solar_score ??
+    null;
+  const powerScore =
+    result?.power_supply_analysis?.grid_reliability ??
+    result?.power_supply_analysis?.score ??
+    null;
+
+  const STEPS = [
+    "Satellite fetch",
+    "Land analysis",
+    "Energy model",
+    "Power grid",
+    "AI reasoning",
+    "PROMETHEE",
+    "Final scoring",
+  ];
+
+  const computeOverallScore = (res: AnalysisResult | null) => {
+    if (!res) return null;
+    return (
+      res.promethee_mcgp_analysis?.overall_score ??
+      res.decision_recommendation?.overall_score ??
+      null
+    );
+  };
+
+  const locationRecommendation = React.useMemo(() => {
+    if (!result) return null;
+
+    const promText =
+      (typeof result.promethee_mcgp_analysis?.recommendations === "string"
+        ? result.promethee_mcgp_analysis.recommendations
+        : null) ||
+      (Array.isArray(
+        (result.promethee_mcgp_analysis as any)?.recommendation?.recommendations
+      )
+        ? (result.promethee_mcgp_analysis as any).recommendation.recommendations.join(
+            "；"
+          )
+        : (result.promethee_mcgp_analysis as any)?.recommendation
+            ?.recommendations) ||
+      (result.promethee_mcgp_analysis as any)?.recommendation;
+
+    const decisionText =
+      (Array.isArray((result.decision_recommendation as any)?.recommendations)
+        ? (result.decision_recommendation as any).recommendations.join("；")
+        : (result.decision_recommendation as any)?.recommendation) ||
+      (typeof (result.ai_decision_analysis as any)?.analysis === "string"
+        ? (result.ai_decision_analysis as any).analysis
+        : null);
+
+    return promText || decisionText || null;
+  }, [result]);
+
   return (
-    <div>
-      {/* ── NAVBAR ── */}
-      <nav className="navbar">
-        <a className="navbar-brand" href="/">
-          <div className="brand-icon">IDCSS</div>
-          <div className="brand-text">
-            <span className="brand-name">IDCSS</span>
-            <span className="brand-tagline">
-              The Intelligent Data-Center Site Selection
+    <div className="app">
+      <nav className="nav">
+        <div className="nav-logo">
+          <div className="logo-mark">⬡</div>
+          <div className="logo-text">
+            <span className="logo-primary">IDCSS</span>
+            <span className="logo-sub">
+              Intelligent Data-Center Site Selection
             </span>
           </div>
-        </a>
-        <div className="navbar-status">
-          <div className="status-dot" />
-          System Online
+        </div>
+        <div className="nav-status">
+          <span className="status-pip" />
+          Backend Online
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <div className="hero">
-        <div className="hero-bg" />
-        <div className="hero-overlay" />
-        <div className="hero-content">
-          <div className="hero-badge">
-            Intelligent Data Center Site Selection
+      <header className="hero">
+        <div className="hero-noise" />
+        <div className="hero-glow" />
+        <div className="hero-inner">
+          <div className="hero-chip">
+            An Intelligent Site Selection Data Center
           </div>
-          <h1>Powered by Google Earth Engine and AI Technology</h1>
-          <p>
-            An Intelligent Data Center Site Selection and Energy Optimization
-            Based on Google Earth Engine and AI Technology .
+          <h1 className="hero-h1">
+            An Intelligent Site Selection Data Center and Energy Optimisation
+            Based on <em>Google Earth Engine</em> and <em>AI Technology</em>
+            <br />
+            data center location
+          </h1>
+          <p className="hero-sub">
+            Satellite imagery × Google Earth Engine × AI-powered
+            multi-dimensional scoring
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* ── MAIN CONTENT ── */}
-      <div className="container">
-        {/* ── HOW TO USE BANNER ── */}
-        <div className="instruction-banner">
-          <div className="instruction-icon">💡</div>
-          <div className="instruction-text">
-            <h3>How to Use IDCSS</h3>
-            <p>
-              Select a candidate location for your data center directly on the
-              interactive map below, fine-tune the analysis radius, then run the
-              AI analysis to receive a suitability score and detailed
-              recommendation.
-            </p>
-            <div className="instruction-steps">
-              <span className="step-chip">① Click on the map</span>
-              <span className="step-chip">② Review coordinates</span>
-              <span className="step-chip">③ Set analysis radius</span>
-              <span className="step-chip">④ Run AI Analysis</span>
-              <span className="step-chip">⑤ Review results</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── INTERACTIVE MAP ── */}
-        <div className="map-card">
-          <div className="map-card-header">
-            <h2>🗺 Interactive Location Map</h2>
-            <span className="map-instruction">
-              🖱 Click anywhere on the map to select a location
+      <main className="main">
+        <section className="panel map-panel">
+          <div className="panel-head">
+            <span className="panel-icon">◎</span>
+            <span className="panel-title">
+              Select Location by clicking in the map
             </span>
+            <span className="panel-hint">Click anywhere on the map</span>
           </div>
-
-          <div className="map-wrapper">
+          <div className="map-box">
             <MapContainer
               center={[20, 10]}
               zoom={2}
-              scrollWheelZoom={true}
+              scrollWheelZoom
               style={{ height: "100%", width: "100%" }}
             >
               <TileLayer
@@ -184,28 +478,24 @@ export default function App() {
               {clickedLocation && (
                 <Marker
                   position={[clickedLocation.lat, clickedLocation.lng]}
-                  icon={tealIcon}
+                  icon={pinIcon}
                   ref={markerRef}
                 >
                   <Popup>
-                    <div className="popup-inner">
-                      <h4>📍 {clickedLocation.name || "Selected Location"}</h4>
-                      <p>
-                        <strong>Lat:</strong> {clickedLocation.lat}
-                      </p>
-                      <p>
-                        <strong>Lng:</strong> {clickedLocation.lng}
-                      </p>
+                    <div className="popup-box">
+                      <div className="popup-coord">
+                        {clickedLocation.lat}°, {clickedLocation.lng}°
+                      </div>
                       <button
+                        className="popup-btn"
                         onClick={() =>
                           handleLocationSelect(
                             clickedLocation.lat,
-                            clickedLocation.lng,
-                            clickedLocation.name
+                            clickedLocation.lng
                           )
                         }
                       >
-                        ✓ Use This Location
+                        Confirm location
                       </button>
                     </div>
                   </Popup>
@@ -213,217 +503,335 @@ export default function App() {
               )}
             </MapContainer>
           </div>
-
-          {clickedLocation ? (
-            <div className="selected-location-bar">
-              <span>📍 Selected coordinates:</span>
-              <span className="coord-badge">
-                {clickedLocation.lat}, {clickedLocation.lng}
-              </span>
-              <span style={{ color: "var(--gray-400)", marginLeft: "auto" }}>
-                Click the map to change location
-              </span>
-            </div>
-          ) : (
-            <div className="map-empty">
-              Click anywhere on the map to select a candidate location
+          {clickedLocation && (
+            <div className="coord-bar">
+              <span className="coord-label">📍 Selected</span>
+              <code className="coord-code">
+                {clickedLocation.lat}° N &nbsp;/&nbsp; {clickedLocation.lng}° E
+              </code>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* ── INPUT PANEL ── */}
-        <div className="card">
-          <div className="card-header">
-            <h2>📋 Analysis Parameters</h2>
-            <span className="card-hint">Coordinates auto-fill from map</span>
+        <section className="panel params-panel">
+          <div className="panel-head">
+            <span className="panel-icon">⊞</span>
+            <span className="panel-title">Parameters</span>
           </div>
-
-          <div className="input-grid">
-            <div className="input-group">
-              <label>Latitude</label>
+          <div className="params-grid">
+            <div className="field">
+              <label className="field-label">Latitude</label>
               <input
+                className="field-input"
                 type="number"
+                placeholder="e.g. 48.8566"
                 value={latitude}
                 onChange={(e) => setLatitude(e.target.value)}
-                placeholder="Click map or enter e.g. 39.90"
               />
             </div>
-
-            <div className="input-group">
-              <label>Longitude</label>
+            <div className="field">
+              <label className="field-label">Longitude</label>
               <input
+                className="field-input"
                 type="number"
+                placeholder="e.g. 2.3522"
                 value={longitude}
                 onChange={(e) => setLongitude(e.target.value)}
-                placeholder="Click map or enter e.g. 116.40"
               />
             </div>
-
-            <div className="input-group">
-              <label>Analysis Radius</label>
+            <div className="field">
+              <label className="field-label">Analysis Radius</label>
               <select
+                className="field-input"
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
               >
-                <option value="500">500 m — Precise parcel</option>
-                <option value="1000">1,000 m — Neighbourhood</option>
-                <option value="2000">2,000 m — District</option>
-                <option value="5000">5,000 m — City zone</option>
-                <option value="10000">10,000 m — Regional</option>
+                <option value="500">500 m</option>
+                <option value="1000">1 000 m</option>
+                <option value="2000">2 000 m</option>
+                <option value="5000">5 000 m</option>
               </select>
             </div>
           </div>
-
           <button
-            className="analyze-btn"
+            className="run-btn"
             onClick={startAnalysis}
             disabled={loading}
           >
-            {loading ? "⏳ Analyzing location data…" : "🚀 Run AI Analysis"}
+            {loading ? (
+              <>
+                <span className="btn-spinner" /> Running analysis…
+              </>
+            ) : (
+              <>Run AI Analysis →</>
+            )}
           </button>
+          {error && <div className="err-box">⚠ {error}</div>}
+        </section>
 
-          {error && <p className="error">{error}</p>}
-        </div>
-
-        {/* ── AI PANEL ── */}
-        <div className="ai-panel">
-          <div className="ai-panel-header">
-            <div className="ai-avatar">🤖</div>
-            <div className="ai-panel-header-text">
-              <h2>AI Analysis Engine</h2>
-              <p>Multi-factor geospatial intelligence for data center siting</p>
+        {loading && (
+          <section className="panel load-panel">
+            <div className="load-head">Analyzing site…</div>
+            <div className="load-bar-track">
+              <div
+                className="load-bar-fill"
+                style={{ width: `${progress}%` }}
+              />
             </div>
-          </div>
-
-          <div className="ai-panel-body">
-            <div className="ai-how-it-works">
-              <h4>How the AI scoring works</h4>
-              <div className="ai-steps">
-                <div className="ai-step">
-                  <div className="ai-step-num">1</div>
-                  <span>
-                    <strong>Data ingestion</strong> — Google Earth Engine
-                    retrieves satellite imagery, elevation models, and climate
-                    datasets for the selected radius.
-                  </span>
-                </div>
-                <div className="ai-step">
-                  <div className="ai-step-num">2</div>
-                  <span>
-                    <strong>Multi-factor scoring</strong> The AI evaluates six
-                    weighted parameters (see below) and generates a composite
-                    0-100 suitability score.
-                  </span>
-                </div>
-                <div className="ai-step">
-                  <div className="ai-step-num">3</div>
-                  <span>
-                    <strong>Recommendation</strong> A plain-language summary is
-                    produced highlighting key strengths, risks, and suggested
-                    next steps for the site.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="ai-factors">
-              <div className="ai-factor">
-                <div className="ai-factor-icon">⚡</div>
-                <div className="ai-factor-name">Energy Access</div>
-                <div className="ai-factor-desc">
-                  Grid proximity &amp; capacity
-                </div>
-              </div>
-              <div className="ai-factor">
-                <div className="ai-factor-icon">🌡</div>
-                <div className="ai-factor-name">Climate</div>
-                <div className="ai-factor-desc">
-                  Temp &amp; humidity stability
-                </div>
-              </div>
-              <div className="ai-factor">
-                <div className="ai-factor-icon">🌊</div>
-                <div className="ai-factor-name">Flood Risk</div>
-                <div className="ai-factor-desc">Elevation &amp; drainage</div>
-              </div>
-              <div className="ai-factor">
-                <div className="ai-factor-icon">📡</div>
-                <div className="ai-factor-name">Connectivity</div>
-                <div className="ai-factor-desc">
-                  Fibre &amp; network density
-                </div>
-              </div>
-              <div className="ai-factor">
-                <div className="ai-factor-icon">🏔</div>
-                <div className="ai-factor-name">Seismic</div>
-                <div className="ai-factor-desc">Geological stability</div>
-              </div>
-              <div className="ai-factor">
-                <div className="ai-factor-icon">🏗</div>
-                <div className="ai-factor-name">Land Use</div>
-                <div className="ai-factor-desc">Zoning &amp; accessibility</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── RESULTS ── */}
-        {result && (
-          <div className="card">
-            <div className="card-header">
-              <h2>📊 Analysis Results</h2>
-              <span className="card-hint">
-                {result.latitude}, {result.longitude}
-              </span>
-            </div>
-
-            <div className="result-grid">
-              <div className="result-box">
-                <h3>Coordinates</h3>
-                <p>
-                  <strong>Latitude:</strong> {result.latitude}
-                </p>
-                <p>
-                  <strong>Longitude:</strong> {result.longitude}
-                </p>
-                <p>
-                  <strong>Radius:</strong> {radius} m
-                </p>
-              </div>
-
-              <div className="result-box">
-                <h3>Suitability Score</h3>
-                <p className="score">{result.score}</p>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--gray-400)",
-                    margin: "4px 0 6px",
-                  }}
-                >
-                  out of 100
-                </p>
-                <div className="score-bar">
+            <div className="load-steps">
+              {STEPS.map((s, i) => {
+                const threshold = ((i + 1) / STEPS.length) * 100;
+                const done = progress >= threshold;
+                const active = !done && progress >= (i / STEPS.length) * 100;
+                return (
                   <div
-                    className="score-fill"
-                    style={{ width: `${result.score}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="result-box">
-                <h3>AI Recommendation</h3>
-                <p>{result.recommendation}</p>
-              </div>
+                    key={s}
+                    className={`load-step ${
+                      done ? "done" : active ? "active" : ""
+                    }`}
+                  >
+                    <span className="step-dot" />
+                    <span>{s}</span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* ── FOOTER ── */}
-        <footer className="footer">
-          © 2026 <strong>IDCSS</strong> Essongue Iperot Loice Graduation-Thesis
-        </footer>
-      </div>
+        {result && (
+          <div ref={resultsRef} className="results-root">
+            <section className="panel score-panel">
+              <div className="score-left">
+                <div className="score-loc">
+                  <span>◎</span>
+                  {result.location.latitude}°,&nbsp;{result.location.longitude}°
+                </div>
+                {overallScore !== null && (
+                  <Verdict score={Number(overallScore)} />
+                )}
+                <h2 className="score-headline">Analysis Complete</h2>
+                <p className="score-sub">
+                  Multi-criteria evaluation across{" "}
+                  {
+                    Object.keys(result).filter(
+                      (k) => !k.startsWith("ai_") && k !== "location"
+                    ).length
+                  }{" "}
+                  dimensions using satellite data and AI reasoning.
+                </p>
+              </div>
+              <div className="score-rings">
+                {overallScore !== null && (
+                  <ScoreRing score={Number(overallScore)} label="Overall" />
+                )}
+                {energyScore !== null && (
+                  <ScoreRing score={Number(energyScore)} label="Energy" />
+                )}
+                {powerScore !== null && (
+                  <ScoreRing score={Number(powerScore)} label="Power" />
+                )}
+              </div>
+            </section>
+
+            {locationRecommendation && (
+              <section className="panel rec-panel">
+                <div className="rec-head">
+                  <div className="rec-chip">AI Recommendation</div>
+                  {overallScore !== null && (
+                    <Verdict score={Number(overallScore)} />
+                  )}
+                </div>
+                <div className="rec-body">
+                  <div className="rec-icon">🧭</div>
+                  <div className="rec-text">
+                    <p>{String(locationRecommendation)}</p>
+                  </div>
+                </div>
+                <div className="rec-meta">
+                  <span className="rec-pill">PROMETHEE · Decision AI</span>
+                  <span className="rec-pill">
+                    Radius {radius} m · Lat {latitude || result.location.latitude}
+                    ° · Lon {longitude || result.location.longitude}°
+                  </span>
+                </div>
+              </section>
+            )}
+
+            {overallScore !== null && overallScore < 50 && (
+              <section className="panel alt-panel">
+                <div className="panel-head">
+                  <span className="panel-icon">🧭</span>
+                  <span className="panel-title">Nearby Recommended Location</span>
+                  <span className="panel-hint">Auto-search within 100 km</span>
+                </div>
+                {recLoading && (
+                  <div className="alt-body">Searching for better nearby sites…</div>
+                )}
+                {recError && (
+                  <div className="err-box">⚠ Recommendation failed: {recError}</div>
+                )}
+                {recommendation && (
+                  <div className="alt-body">
+                    <div className="alt-row">
+                      <div>
+                        <div className="alt-label">Best candidate</div>
+                        <div className="alt-coord">
+                          {recommendation.recommended_location.latitude.toFixed(
+                            4
+                          )}
+                          °,{" "}
+                          {recommendation.recommended_location.longitude.toFixed(
+                            4
+                          )}
+                          °
+                        </div>
+                      </div>
+                      <div className="alt-score">
+                        Score {recommendation.recommended_location.suitability_score}
+                      </div>
+                    </div>
+                    <div className="alt-meta">
+                      <span>
+                        Distance {recommendation.recommended_location.distance_km} km
+                      </span>
+                      {recommendation.recommended_location.solar_zone && (
+                        <span>
+                          Solar {recommendation.recommended_location.solar_zone}
+                        </span>
+                      )}
+                      {recommendation.recommended_location.wind_zone && (
+                        <span>
+                          Wind {recommendation.recommended_location.wind_zone}
+                        </span>
+                      )}
+                      {recommendation.recommended_location.water && (
+                        <span>
+                          Water {recommendation.recommended_location.water}
+                        </span>
+                      )}
+                    </div>
+                    {recommendation.recommended_location.rationale && (
+                      <p className="alt-rationale">
+                        {recommendation.recommended_location.rationale}
+                      </p>
+                    )}
+                    <button
+                      className="run-btn ghost"
+                      onClick={() =>
+                        handleLocationSelect(
+                          recommendation.recommended_location.latitude,
+                          recommendation.recommended_location.longitude
+                        )
+                      }
+                    >
+                      Use this location →
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
+            <div className="data-grid">
+              <DataSection
+                icon="🌍"
+                title="Geographic Environment"
+                data={result.geographic_environment}
+                accent="#22d3a5"
+                maxRows={8}
+              />
+              <DataSection
+                icon="🏗"
+                title="Land Analysis"
+                data={result.land_analysis}
+                accent="#38bdf8"
+              />
+              <DataSection
+                icon="⚡"
+                title="Energy Assessment"
+                data={result.energy_assessment}
+                accent="#f59e0b"
+              />
+              <DataSection
+                icon="🔌"
+                title="Power Supply"
+                data={result.power_supply_analysis}
+                accent="#a78bfa"
+              />
+              <DataSection
+                icon="🔋"
+                title="Energy Storage"
+                data={result.energy_storage_analysis}
+                accent="#34d399"
+              />
+              <DataSection
+                icon="♻️"
+                title="Heat Utilization"
+                data={result.heat_utilization}
+                accent="#fb7185"
+              />
+              <DataSection
+                icon="📐"
+                title="PROMETHEE–MCGP"
+                data={result.promethee_mcgp_analysis}
+                accent="#22d3a5"
+              />
+              <DataSection
+                icon="✅"
+                title="Decision Recommendation"
+                data={result.decision_recommendation}
+                accent="#4ade80"
+              />
+            </div>
+
+            {(result.ai_multimodal_analysis ||
+              result.ai_energy_analysis ||
+              result.ai_power_supply_analysis ||
+              result.ai_energy_storage_analysis ||
+              result.ai_decision_analysis) && (
+              <section className="panel ai-section">
+                <div className="panel-head">
+                  <span className="panel-icon">◈</span>
+                  <span className="panel-title">AI Reasoning</span>
+                  <span className="panel-hint">Click any card to expand</span>
+                </div>
+                <div className="ai-list">
+                  <AICard
+                    icon="🛰"
+                    title="Multimodal Analysis"
+                    data={result.ai_multimodal_analysis}
+                  />
+                  <AICard
+                    icon="⚡"
+                    title="Energy AI Analysis"
+                    data={result.ai_energy_analysis}
+                  />
+                  <AICard
+                    icon="🔌"
+                    title="Power Supply AI Analysis"
+                    data={result.ai_power_supply_analysis}
+                  />
+                  <AICard
+                    icon="🔋"
+                    title="Energy Storage AI Analysis"
+                    data={result.ai_energy_storage_analysis}
+                  />
+                  <AICard
+                    icon="🧠"
+                    title="Decision AI Analysis"
+                    data={result.ai_decision_analysis}
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </main>
+
+      <footer className="foot">
+        © 2026 IDCSS — Graduation Thesis Essongue Iperot Loice 2026
+        &nbsp;·&nbsp; Google Earth Engine + OpenAI
+      </footer>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 """
-决策分析AI服务 - 使用OpenAI官方库进行智能决策分析
+Decision analysis AI service - uses OpenAI SDK for intelligent decision analysis
 """
 
 import asyncio
@@ -9,64 +9,60 @@ from openai import OpenAI
 import os
 
 class DecisionAIAnalysisService:
-    """决策分析AI服务类"""
+    """Decision analysis AI service"""
     
     def __init__(self):
-        """初始化决策分析AI服务"""
-        # 设置代理
-        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
-        
-        # 直接使用项目中的API密钥
-        api_key = os.environ.get('OPENAI_API_KEY', 'sk-abaWwmXxZ2Mtw9GwLHKNI81Mxpsj9RVj5IapLh8mzoP4LfAR')
+        """Initialize decision analysis AI service"""
+        # Use project-level API key (proxy picked up from env if provided)
+        api_key = os.getenv('OPENAI_API_KEY')
         
         self.client = OpenAI(
-            base_url='https://api.gptplus5.com/v1',
+            base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             api_key=api_key
         )
         self.model = "gpt-4o-2024-08-06"
         
-        # 决策分析专用prompt模板
+        # Decision-analysis prompt template
         self.decision_prompt = """
-请分析这张卫星图像，进行数据中心选址的综合决策分析：
+Please analyze this satellite image and deliver a comprehensive decision assessment for data-center siting:
 
-1. **选址适宜性评估**
-   - 评估土地适宜性（地形、地质、环境）
-   - 分析建设条件（交通、基础设施）
-   - 评估运营条件（气候、安全）
-   - 给出选址适宜性评分（1-10分）
+1. **Site suitability**
+   - Evaluate land suitability (terrain, geology, environment)
+   - Analyze construction conditions (transportation, infrastructure)
+   - Assess operating conditions (climate, safety)
+   - Provide a suitability score (1–10)
 
-2. **经济性分析**
-   - 评估土地成本
-   - 分析建设成本
-   - 评估运营成本
-   - 分析投资回报率
+2. **Economic analysis**
+   - Evaluate land cost
+   - Analyze construction cost
+   - Assess operating cost
+   - Analyze return on investment
 
-3. **技术可行性分析**
-   - 评估技术实现难度
-   - 分析技术风险
-   - 评估技术成熟度
-   - 分析技术发展潜力
+3. **Technical feasibility**
+   - Evaluate implementation difficulty
+   - Analyze technical risks
+   - Assess technological maturity
+   - Analyze development potential
 
-4. **环境影响评估**
-   - 评估环境影响
-   - 分析生态保护要求
-   - 评估环境合规性
-   - 分析可持续发展潜力
+4. **Environmental impact**
+   - Evaluate environmental impact
+   - Analyze ecological protection requirements
+   - Assess environmental compliance
+   - Analyze sustainability potential
 
-5. **风险分析**
-   - 识别自然灾害风险
-   - 分析政策风险
-   - 评估市场风险
-   - 分析技术风险
+5. **Risk analysis**
+   - Identify natural disaster risks
+   - Analyze policy risks
+   - Assess market risks
+   - Analyze technical risks
 
-6. **综合决策建议**
-   - 给出综合评分（1-10分）
-   - 提供决策建议
-   - 识别关键成功因素
-   - 给出实施建议
+6. **Overall recommendation**
+   - Provide an overall score (1–10)
+   - Provide decision recommendations
+   - Identify key success factors
+   - Provide implementation suggestions
 
-请提供详细的分析结果和具体建议，使用中文回答。
+Please provide detailed analysis and specific recommendations; respond in Chinese.
 """
     
     async def analyze_location_ai(self, satellite_data: Dict[str, Any], 
@@ -94,7 +90,7 @@ class DecisionAIAnalysisService:
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 获取地理元数据
+            # Get geographical metadata
             metadata = satellite_data.get("metadata", {})
             location_info = {
                 "center": metadata.get("center", []),
@@ -103,12 +99,12 @@ class DecisionAIAnalysisService:
                 "resolution": metadata.get("resolution", "Unknown")
             }
             
-            # 构建增强的决策分析prompt
+            # Get geographical metadata
             enhanced_prompt = self._build_decision_prompt(
                 location_info, land_analysis, energy_assessment, custom_prompt
             )
             
-            # 调用AI分析
+            # Call AI analysis
             ai_result = await self._call_ai_analysis(image_url, enhanced_prompt)
             
             if ai_result["success"]:
@@ -139,41 +135,41 @@ class DecisionAIAnalysisService:
         else:
             base_prompt = self.decision_prompt
         
-        # 添加地理位置信息
+        # Add location information
         context = f"""
-地理位置信息：
-- 坐标: {location_info.get('center', [])}
-- 分析半径: {location_info.get('radius', 0)}米
-- 数据源: {location_info.get('data_source', 'Unknown')}
-- 分辨率: {location_info.get('resolution', 'Unknown')}
+Geolocation information：
+- coordinate: {location_info.get('center', [])}
+- analysis radius: {location_info.get('radius', 0)}米
+- data source: {location_info.get('data_source', 'Unknown')}
+- resolution: {location_info.get('resolution', 'Unknown')}
 """
         
-        # 添加土地利用分析信息
+        # Add land use analysis information
         if land_analysis:
             context += f"""
-土地利用分析结果：
-- 总面积: {land_analysis.get('total_area', 'Unknown')}平方米
-- 土地利用分布: {land_analysis.get('land_use_distribution', {})}
-- 适宜性等级: {land_analysis.get('empty_land_analysis', {}).get('suitability_level', 'Unknown')}
+Land use analysis results：
+- total area: {land_analysis.get('total_area', 'Unknown')}平方米
+- land use distribution: {land_analysis.get('land_use_distribution', {})}
+- suitability level: {land_analysis.get('empty_land_analysis', {}).get('suitability_level', 'Unknown')}
 """
         
         # 添加能源评估信息
         if energy_assessment:
             context += f"""
-能源评估结果：
-- 太阳能数据: {energy_assessment.get('solar_data', {})}
-- 风能数据: {energy_assessment.get('wind_data', {})}
-- 可再生能源潜力: {energy_assessment.get('renewable_potential', {})}
+Energy assessment results：
+- Solar data: {energy_assessment.get('solar_data', {})}
+- Wind energy data: {energy_assessment.get('wind_data', {})}
+- Renewable energy potential: {energy_assessment.get('renewable_potential', {})}
 """
         
-        context += "\n请结合这些信息，进行更准确的决策分析。"
+        context += "\nPlease combine this information to conduct a more accurate decision analysis."
         
         return base_prompt + "\n\n" + context
     
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
-        """调用AI分析API"""
+        """Calling AI Analysis API"""
         try:
-            # 使用OpenAI官方库进行API调用
+            # Using the OpenAI official library to make API calls
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -185,7 +181,7 @@ class DecisionAIAnalysisService:
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_url,
-                                    "detail": "high"  # 使用low减少上下文长度
+                                    "detail": "high"  # Use low to reduce context length
                                 }
                             }
                         ]
@@ -193,7 +189,7 @@ class DecisionAIAnalysisService:
                 ],
                 max_tokens=8000,
                 temperature=0.3,
-                timeout=180  # 2分钟超时
+                timeout=180  # 2-minute timeout
             )
             
             analysis_text = response.choices[0].message.content
@@ -210,7 +206,6 @@ class DecisionAIAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI分析调用失败: {str(e)}",
+                "error": f"AI analysis call failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
-

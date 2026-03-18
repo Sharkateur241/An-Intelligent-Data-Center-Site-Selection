@@ -42,9 +42,9 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
         <div style={{ textAlign: "center", padding: "50px" }}>
           <BulbOutlined style={{ fontSize: "48px", color: "#ccc" }} />
           <Title level={4} style={{ color: "#ccc", marginTop: "16px" }}>
-            暂无决策分析数据
+            No decision analysis data
           </Title>
-          <Text type="secondary">请先进行位置分析</Text>
+          <Text type="secondary">Run a location analysis first</Text>
         </div>
       </Card>
     );
@@ -61,11 +61,11 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
   };
 
   const getScoreLevel = (score: number) => {
-    if (score >= 90) return "优秀";
-    if (score >= 75) return "良好";
-    if (score >= 60) return "一般";
-    if (score >= 45) return "较差";
-    return "很差";
+    if (score >= 90) return "Excellent";
+    if (score >= 75) return "Good";
+    if (score >= 60) return "Fair";
+    if (score >= 45) return "Poor";
+    return "Very poor";
   };
 
   const getDecisionLevelColor = (level: string) => {
@@ -84,8 +84,30 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
         return "default";
     }
   };
+  const translateDecisionLevel = (level: string) => {
+    switch (level) {
+      case "强烈推荐":
+        return "Strongly Recommended";
+      case "推荐":
+        return "Recommended";
+      case "可以考虑":
+        return "Consider with Caution";
+      case "不推荐":
+        return "Not Recommended";
+      case "强烈不推荐":
+        return "Strongly Not Recommended";
+      default:
+        return level || "Unknown";
+    }
+  };
+  const translateRisk = (level?: string) => {
+    if (level === "低") return "Low";
+    if (level === "中") return "Medium";
+    if (level === "高") return "High";
+    return level || "Unknown";
+  };
 
-  // 准备雷达图数据
+  // Prepare radar chart data
   const radarData = decision_recommendation?.detailed_scores
     ? Object.entries(decision_recommendation.detailed_scores).map(
         ([criterion, score]: [string, any]) => ({
@@ -97,11 +119,11 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
     : [];
 
   const criteriaLabels = {
-    "land suitability": "土地适宜性",
-    "energy resources": "能源资源",
-    "grid capacity": "电网容量",
-    "economic feasibility": "经济可行性",
-    "environmental impact": "环境影响",
+    "land suitability": "Land suitability",
+    "energy resources": "Energy resources",
+    "grid capacity": "Grid capacity",
+    "economic feasibility": "Economic feasibility",
+    "environmental impact": "Environmental impact",
   };
 
   const radarDataWithLabels = radarData.map((item) => ({
@@ -113,10 +135,10 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
 
   return (
     <div>
-      <Title level={2}>智能决策分析</Title>
+      <Title level={2}>AI Decision Analysis</Title>
 
-      {/* 综合决策结果 */}
-      <Card title="综合决策结果" style={{ marginBottom: 16 }}>
+      {/* Overall decision result */}
+      <Card title="Overall Decision Result" style={{ marginBottom: 16 }}>
         <Row gutter={16} align="middle">
           <Col span={8}>
             <div style={{ textAlign: "center" }}>
@@ -143,32 +165,32 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
           </Col>
           <Col span={8}>
             <div style={{ textAlign: "center" }}>
-              <Title level={3}>决策等级</Title>
+              <Title level={3}>Decision Level</Title>
               <Tag
                 color={getDecisionLevelColor(
                   decision_recommendation?.decision_level || ""
                 )}
                 style={{ fontSize: "18px", padding: "8px 16px" }}
               >
-                {decision_recommendation?.decision_level || "未知"}
+                {translateDecisionLevel(decision_recommendation?.decision_level || "")}
               </Tag>
             </div>
           </Col>
           <Col span={8}>
             <div style={{ textAlign: "center" }}>
-              <Title level={3}>分析时间</Title>
+              <Title level={3}>Analysis Time</Title>
               <Text type="secondary">
                 {new Date(
                   decision_recommendation?.analysis_date || ""
-                ).toLocaleString("zh-CN")}
+                ).toLocaleString()}
               </Text>
             </div>
           </Col>
         </Row>
       </Card>
 
-      {/* 详细评分雷达图 */}
-      <Card title="详细评分分析" style={{ marginBottom: 16 }}>
+      {/* Detailed scores radar */}
+      <Card title="Detailed Scores" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={12}>
             <ResponsiveContainer width="100%" height={400}>
@@ -180,7 +202,7 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
                 />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} />
                 <Radar
-                  name="评分"
+                  name="Score"
                   dataKey="score"
                   stroke="#1890ff"
                   fill="#1890ff"
@@ -190,7 +212,7 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
             </ResponsiveContainer>
           </Col>
           <Col span={12}>
-            <Title level={4}>各维度评分详情</Title>
+            <Title level={4}>Dimension Score Details</Title>
             {radarDataWithLabels.map((item, index) => (
               <div key={index} style={{ marginBottom: 16 }}>
                 <div
@@ -202,7 +224,7 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
                 >
                   <Text strong>{item.criterion}</Text>
                   <Text strong style={{ color: getScoreColor(item.score) }}>
-                    {item.score} 分
+                    {item.score} pts
                   </Text>
                 </div>
                 <Progress
@@ -216,8 +238,8 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
         </Row>
       </Card>
 
-      {/* 决策建议 */}
-      <Card title="决策建议" style={{ marginBottom: 16 }}>
+      {/* Decision recommendations */}
+      <Card title="Decision Recommendations" style={{ marginBottom: 16 }}>
         <List
           dataSource={decision_recommendation?.recommendations || []}
           renderItem={(item: string, index: number) => (
@@ -246,11 +268,11 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
         />
       </Card>
 
-      {/* 风险评估 */}
-      <Card title="风险评估" style={{ marginBottom: 16 }}>
+      {/* Risk assessment */}
+      <Card title="Risk Assessment" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={12}>
-            <Title level={4}>风险等级</Title>
+            <Title level={4}>Risk Level</Title>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
               <Tag
                 color={
@@ -263,13 +285,13 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
                 }
                 style={{ fontSize: "18px", padding: "8px 16px" }}
               >
-                {decision_recommendation?.risk_assessment?.risk_level || "未知"}
+                {translateRisk(decision_recommendation?.risk_assessment?.risk_level)}
               </Tag>
             </div>
 
             {decision_recommendation?.risk_assessment?.risks?.length > 0 && (
               <div>
-                <Title level={5}>主要风险</Title>
+                <Title level={5}>Key Risks</Title>
                 <List
                   dataSource={decision_recommendation.risk_assessment.risks}
                   renderItem={(risk: string) => (
@@ -285,7 +307,7 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
             )}
           </Col>
           <Col span={12}>
-            <Title level={4}>风险缓解措施</Title>
+            <Title level={4}>Mitigations</Title>
             {decision_recommendation?.risk_assessment?.mitigation_measures
               ?.length > 0 ? (
               <List
@@ -303,8 +325,8 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
               />
             ) : (
               <Alert
-                message="暂无风险缓解措施"
-                description="当前风险评估显示风险较低，无需特殊缓解措施。"
+                message="No mitigation actions provided"
+                description="Current assessment shows low risk; no special mitigation required."
                 type="info"
                 showIcon
               />
@@ -313,50 +335,50 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
         </Row>
       </Card>
 
-      {/* 关键指标统计 */}
-      <Card title="关键指标统计">
+      {/* Key metrics */}
+      <Card title="Key Metrics">
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="土地适宜性"
+              title="Land suitability"
               value={
                 decision_recommendation?.detailed_scores?.land_suitability
                   ?.score || 0
               }
-              suffix="分"
+              suffix="pts"
               prefix={<EnvironmentOutlined style={{ color: "#52c41a" }} />}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="能源资源"
+              title="Energy resources"
               value={
                 decision_recommendation?.detailed_scores?.energy_resources
                   ?.score || 0
               }
-              suffix="分"
+              suffix="pts"
               prefix={<ThunderboltOutlined style={{ color: "#faad14" }} />}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="经济可行性"
+              title="Economic feasibility"
               value={
                 decision_recommendation?.detailed_scores?.economic_feasibility
                   ?.score || 0
               }
-              suffix="分"
+              suffix="pts"
               prefix={<DollarOutlined style={{ color: "#1890ff" }} />}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="环境影响"
+              title="Environmental impact"
               value={
                 decision_recommendation?.detailed_scores?.environmental_impact
                   ?.score || 0
               }
-              suffix="分"
+              suffix="pts"
               prefix={<SafetyOutlined style={{ color: "#52c41a" }} />}
             />
           </Col>

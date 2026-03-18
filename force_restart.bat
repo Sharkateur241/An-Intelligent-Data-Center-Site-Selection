@@ -21,8 +21,8 @@ del /s /q *.pyc 2>nul
 echo.
 echo 🔄 重新启动系统...
 echo 设置代理...
-set HTTP_PROXY=http://127.0.0.1:7897
-set HTTPS_PROXY=http://127.0.0.1:7897
+set HTTP_PROXY=http://127.0.0.1:1082
+set HTTPS_PROXY=http://127.0.0.1:1082
 
 echo 启动AI分析模式...
 cd frontend

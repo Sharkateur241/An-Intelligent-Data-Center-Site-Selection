@@ -1,5 +1,5 @@
 """
-图像分析服务 - 基于AI的土地利用分析
+Image Analysis Service - AI-based Land Use Analysis
 """
 
 import cv2
@@ -14,89 +14,89 @@ import math
 from datetime import datetime
 
 class ImageAnalysisService:
-    """图像分析服务类"""
+    """Image Analysis Service Class"""
     
     def __init__(self):
-        """初始化图像分析服务"""
+        """Initialize the image analysis service"""
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.land_use_classes = {
-            0: "水体",
-            1: "植被",
-            2: "裸地",
-            3: "建筑",
-            4: "道路",
-            5: "农田"
+            0: "Water",
+            1: "Vegetation",
+            2: "Bare Land",
+            3: "Buildings",
+            4: "Roads",
+            5: "Farmland"
         }
         
-        # 初始化模型（这里使用预训练模型）
+        # Initialize models (using pre-trained models here)
         self._load_models()
     
     def _load_models(self):
-        """加载AI模型"""
+        """Load AI models"""
         try:
-            # 这里可以加载预训练的土地利用分类模型
-            # 例如：SegNet, U-Net, DeepLab等
-            print("图像分析模型加载完成")
+            # Pre-trained land use classification models can be loaded here
+            # e.g.: SegNet, U-Net, DeepLab, etc.
+            print("Image analysis model loaded successfully")
         except Exception as e:
-            print(f"模型加载失败: {e}")
+            print(f"Model loading failed: {e}")
     
     async def analyze_land_use(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        分析土地利用情况
+        Analyze land use conditions
         
         Args:
-            satellite_data: 卫星数据
+            satellite_data: Satellite data
             
         Returns:
-            土地利用分析结果
+            Land use analysis results
         """
-        # 使用真实卫星数据分析
+        # Analyze using real satellite data
         land_analysis = await self._analyze_real_land_use(satellite_data)
         return land_analysis
     
     async def _analyze_real_land_use(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        分析真实卫星数据的土地利用 - 增强版
+        Analyze land use from real satellite data - Enhanced version
         """
-        print(f"🔍 检查卫星数据格式: {list(satellite_data.keys())}")
-        print(f"🔍 URL类型: {type(satellite_data.get('url', ''))}")
-        print(f"🔍 URL内容: {str(satellite_data.get('url', ''))[:50]}...")
+        print(f"🔍 Checking satellite data format: {list(satellite_data.keys())}")
+        print(f"🔍 URL type: {type(satellite_data.get('url', ''))}")
+        print(f"🔍 URL content: {str(satellite_data.get('url', ''))[:50]}...")
         
-        # 检查是否有GEE数据
+        # Check if GEE data is present
         url = satellite_data.get("url", "")
         if url and (url.startswith("data:image/png;base64,") or url.startswith("https://")):
-            print("✅ 检测到GEE数据，使用GEE分析")
-            # 使用GEE数据进行AI分析
+            print("✅ GEE data detected, using GEE analysis")
+            # Use GEE data for AI analysis
             land_analysis = await self._analyze_gee_land_use(satellite_data)
         else:
-            print("⚠️ 未检测到GEE数据，检查传统数据")
-            # 检查传统land_cover数据
+            print("⚠️ GEE data not detected, checking legacy data")
+            # Check legacy land_cover data
             land_cover = satellite_data.get("land_cover")
             if land_cover is None:
-                print("❌ 没有land_cover数据，使用默认分析")
-                # 使用默认的土地利用分析
+                print("❌ No land_cover data found, using default analysis")
+                # Use default land use analysis
                 land_analysis = await self._analyze_gee_land_use(satellite_data)
             else:
-                # 增强的土地利用分析
+                # Enhanced land use analysis
                 land_analysis = await self._enhanced_land_analysis(satellite_data)
         
         return land_analysis
     
     async def _analyze_gee_land_use(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        使用GEE数据进行土地利用分析
+        Land use analysis using GEE data
         """
         try:
-            # 从metadata获取基本信息
+            # Get basic information from metadata
             metadata = satellite_data.get("metadata", {})
             center = metadata.get("center", [0, 0])
             radius = metadata.get("radius", 1000)
             
-            # 计算总面积
+            # Calculate total area
             area_km2 = 3.14159 * (radius / 1000) ** 2
             area_m2 = area_km2 * 1000000
             
-            # 基于地理位置的真实土地利用分析
+            # Real land use analysis based on geographic location
             lat, lon = center[0], center[1]
             land_use_data = self._generate_realistic_land_use(lat, lon, area_m2)
             
@@ -104,14 +104,14 @@ class ImageAnalysisService:
                 "success": True,
                 "land_use_analysis": land_use_data,
                 "analysis_date": datetime.now().isoformat(),
-                "data_source": "Google Earth Engine + AI分析"
+                "data_source": "Google Earth Engine + AI Analysis"
             }
             
         except Exception as e:
-            print(f"GEE土地利用分析失败: {e}")
+            print(f"GEE land use analysis failed: {e}")
             return {
                 "success": False,
-                "error": f"GEE土地利用分析失败: {e}",
+                "error": f"GEE land use analysis failed: {e}",
                 "land_use_analysis": {
                     "total_area": 0,
                     "land_cover_distribution": {},
@@ -122,76 +122,76 @@ class ImageAnalysisService:
     
     def _generate_realistic_land_use(self, lat: float, lon: float, area_m2: float) -> Dict[str, Any]:
         """
-        基于地理位置生成真实的土地利用数据
+        Generate realistic land use data based on geographic location
         """
         import random
         
-        # 基于地理位置的区域特征
+        # Regional characteristics based on geographic location
         region_type = self._get_region_type(lat, lon)
         
-        # 根据区域类型生成不同的土地利用分布
-        if region_type == "城市":
+        # Generate different land use distributions based on region type
+        if region_type == "Urban":
             land_distribution = {
-                "水体": random.uniform(0.05, 0.15),
-                "林地": random.uniform(0.10, 0.20),
-                "草地": random.uniform(0.05, 0.15),
-                "农田": random.uniform(0.05, 0.15),
-                "建设用地": random.uniform(0.40, 0.60),
-                "裸地": random.uniform(0.05, 0.15)
+                "Water": random.uniform(0.05, 0.15),
+                "Forest": random.uniform(0.10, 0.20),
+                "Grassland": random.uniform(0.05, 0.15),
+                "Farmland": random.uniform(0.05, 0.15),
+                "Built-up Land": random.uniform(0.40, 0.60),
+                "Bare Land": random.uniform(0.05, 0.15)
             }
             suitability_score = random.uniform(0.60, 0.80)
             recommendations = [
-                "城市区域，基础设施完善",
-                "电力供应稳定",
-                "交通便利，但土地成本较高"
+                "Urban area with well-developed infrastructure",
+                "Stable power supply",
+                "Convenient transportation, but higher land costs"
             ]
-        elif region_type == "郊区":
+        elif region_type == "Suburban":
             land_distribution = {
-                "水体": random.uniform(0.10, 0.20),
-                "林地": random.uniform(0.20, 0.35),
-                "草地": random.uniform(0.15, 0.25),
-                "农田": random.uniform(0.20, 0.40),
-                "建设用地": random.uniform(0.10, 0.25),
-                "裸地": random.uniform(0.05, 0.15)
+                "Water": random.uniform(0.10, 0.20),
+                "Forest": random.uniform(0.20, 0.35),
+                "Grassland": random.uniform(0.15, 0.25),
+                "Farmland": random.uniform(0.20, 0.40),
+                "Built-up Land": random.uniform(0.10, 0.25),
+                "Bare Land": random.uniform(0.05, 0.15)
             }
             suitability_score = random.uniform(0.70, 0.90)
             recommendations = [
-                "郊区位置，土地成本适中",
-                "环境条件良好",
-                "适合建设大型数据中心"
+                "Suburban location with moderate land costs",
+                "Good environmental conditions",
+                "Suitable for large-scale data center construction"
             ]
-        elif region_type == "山区":
+        elif region_type == "Mountainous":
             land_distribution = {
-                "水体": random.uniform(0.05, 0.15),
-                "林地": random.uniform(0.40, 0.60),
-                "草地": random.uniform(0.20, 0.35),
-                "农田": random.uniform(0.05, 0.15),
-                "建设用地": random.uniform(0.05, 0.15),
-                "裸地": random.uniform(0.10, 0.25)
+                "Water": random.uniform(0.05, 0.15),
+                "Forest": random.uniform(0.40, 0.60),
+                "Grassland": random.uniform(0.20, 0.35),
+                "Farmland": random.uniform(0.05, 0.15),
+                "Built-up Land": random.uniform(0.05, 0.15),
+                "Bare Land": random.uniform(0.10, 0.25)
             }
             suitability_score = random.uniform(0.50, 0.70)
             recommendations = [
-                "山区地形，建设难度较大",
-                "环境优美但交通不便",
-                "需要评估地质稳定性"
+                "Mountainous terrain, construction is more challenging",
+                "Beautiful environment but inconvenient transportation",
+                "Geological stability assessment required"
             ]
-        else:  # 平原
+        else:  # Plain
             land_distribution = {
-                "水体": random.uniform(0.15, 0.25),
-                "林地": random.uniform(0.15, 0.25),
-                "草地": random.uniform(0.20, 0.30),
-                "农田": random.uniform(0.30, 0.50),
-                "建设用地": random.uniform(0.10, 0.20),
-                "裸地": random.uniform(0.05, 0.15)
+                "Water": random.uniform(0.15, 0.25),
+                "Forest": random.uniform(0.15, 0.25),
+                "Grassland": random.uniform(0.20, 0.30),
+                "Farmland": random.uniform(0.30, 0.50),
+                "Built-up Land": random.uniform(0.10, 0.20),
+                "Bare Land": random.uniform(0.05, 0.15)
             }
             suitability_score = random.uniform(0.75, 0.95)
             recommendations = [
-                "平原地形，建设条件良好",
-                "土地平整，适合大规模建设",
-                "推荐作为数据中心选址"
+                "Flat terrain with good construction conditions",
+                "Level land suitable for large-scale development",
+                "Recommended as a data center site"
             ]
         
-        # 确保所有比例加起来等于1
+        # Ensure all ratios sum to 1
         total = sum(land_distribution.values())
         for key in land_distribution:
             land_distribution[key] = round(land_distribution[key] / total, 3)
@@ -205,204 +205,204 @@ class ImageAnalysisService:
         }
     
     def _get_region_type(self, lat: float, lon: float) -> str:
-        """根据经纬度判断区域类型"""
-        # 中国主要城市区域判断
-        if 39.5 <= lat <= 40.2 and 115.8 <= lon <= 117.0:  # 北京
-            return "城市"
-        elif 31.0 <= lat <= 31.5 and 121.0 <= lon <= 121.8:  # 上海
-            return "城市"
-        elif 22.3 <= lat <= 22.8 and 113.8 <= lon <= 114.5:  # 深圳
-            return "城市"
-        elif 30.0 <= lat <= 30.5 and 119.8 <= lon <= 120.5:  # 杭州
-            return "郊区"
-        elif 37.0 <= lat <= 38.0 and 104.5 <= lon <= 106.0:  # 中卫
-            return "平原"
-        elif 26.0 <= lat <= 27.0 and 106.0 <= lon <= 107.0:  # 贵阳
-            return "山区"
-        elif 22.8 <= lat <= 23.5 and 113.0 <= lon <= 113.8:  # 广州
-            return "城市"
-        elif 35.5 <= lat <= 36.5 and 103.0 <= lon <= 104.0:  # 兰州
-            return "郊区"
+        """Determine region type based on latitude and longitude"""
+        # Region determination for major Chinese cities
+        if 39.5 <= lat <= 40.2 and 115.8 <= lon <= 117.0:  # Beijing
+            return "Urban"
+        elif 31.0 <= lat <= 31.5 and 121.0 <= lon <= 121.8:  # Shanghai
+            return "Urban"
+        elif 22.3 <= lat <= 22.8 and 113.8 <= lon <= 114.5:  # Shenzhen
+            return "Urban"
+        elif 30.0 <= lat <= 30.5 and 119.8 <= lon <= 120.5:  # Hangzhou
+            return "Suburban"
+        elif 37.0 <= lat <= 38.0 and 104.5 <= lon <= 106.0:  # Zhongwei
+            return "Plain"
+        elif 26.0 <= lat <= 27.0 and 106.0 <= lon <= 107.0:  # Guiyang
+            return "Mountainous"
+        elif 22.8 <= lat <= 23.5 and 113.0 <= lon <= 113.8:  # Guangzhou
+            return "Urban"
+        elif 35.5 <= lat <= 36.5 and 103.0 <= lon <= 104.0:  # Lanzhou
+            return "Suburban"
         else:
-            # 根据海拔和地形特征判断
-            if lat > 45 or lat < 20:  # 高纬度或低纬度
-                return "山区"
-            elif 30 <= lat <= 40 and 100 <= lon <= 120:  # 中部平原
-                return "平原"
+            # Determine based on elevation and terrain characteristics
+            if lat > 45 or lat < 20:  # High or low latitude
+                return "Mountainous"
+            elif 30 <= lat <= 40 and 100 <= lon <= 120:  # Central plains
+                return "Plain"
             else:
-                return "郊区"
+                return "Suburban"
 
     async def _enhanced_land_analysis(self, satellite_data: Dict[str, Any]) -> Dict[str, Any]:
-        """增强的土地利用分析"""
+        """Enhanced land use analysis"""
         try:
-            # 基于GEE数据的土地利用分类
-            # land_cover = satellite_data.get("land_cover")  # GEE数据没有这个字段
+            # Land use classification based on GEE data
+            # land_cover = satellite_data.get("land_cover")  # GEE data does not have this field
             
-            # 计算各类土地面积比例（基于真实数据）
-            # 从metadata获取实际半径，计算真实面积
-            radius_km = satellite_data.get("metadata", {}).get("radius", 1000) / 1000  # 转换为公里
-            total_area = math.pi * (radius_km ** 2)  # 圆形区域面积（km²）
+            # Calculate land area proportions for each type (based on real data)
+            # Get actual radius from metadata and calculate real area
+            radius_km = satellite_data.get("metadata", {}).get("radius", 1000) / 1000  # Convert to kilometers
+            total_area = math.pi * (radius_km ** 2)  # Circular area (km²)
             
-            # 基于地理位置的估算（更准确的方法）
+            # Estimation based on geographic location (more accurate method)
             lat = satellite_data.get("metadata", {}).get("center", [0, 0])[0]
             lon = satellite_data.get("metadata", {}).get("center", [0, 0])[1]
             
-            # 根据地理位置调整土地利用分布
+            # Adjust land use distribution based on geographic location
             land_use_distribution = self._estimate_land_use_distribution(lat, lon)
             
-            # 识别适合建设数据中心的区域
+            # Identify areas suitable for data center construction
             suitable_areas = self._identify_suitable_areas(land_use_distribution)
             
-            # 空地分析
+            # Empty land analysis
             empty_land_analysis = self._analyze_empty_land(suitable_areas)
             
-            # 识别约束条件
+            # Identify constraints
             constraints = self._identify_constraints(land_use_distribution)
             
-            # 生成建议
+            # Generate recommendations
             recommendations = self._generate_land_recommendations(
                 suitable_areas, empty_land_analysis, constraints
             )
             
             return {
-                "total_area": total_area * 1000000,  # 转换为平方米
+                "total_area": total_area * 1000000,  # Convert to square meters
                 "land_use_distribution": land_use_distribution,
                 "suitable_areas": suitable_areas,
                 "empty_land_analysis": empty_land_analysis,
                 "constraints": constraints,
                 "recommendations": recommendations,
                 "analysis_date": datetime.now().isoformat(),
-                "analysis_method": "增强版土地利用分析"
+                "analysis_method": "Enhanced Land Use Analysis"
             }
             
         except Exception as e:
-            print(f"增强土地利用分析失败: {e}")
-            # 返回基础分析结果
+            print(f"Enhanced land use analysis failed: {e}")
+            # Return basic analysis results
             return {
                 "total_area": 1000000,
                 "land_use_distribution": {
-                    "水体": 0.1, "植被": 0.3, "裸地": 0.4, "建筑": 0.2
+                    "Water": 0.1, "Vegetation": 0.3, "Bare Land": 0.4, "Buildings": 0.2
                 },
                 "suitable_areas": [],
-                "constraints": ["分析失败"],
-                "recommendations": ["需要重新分析"],
+                "constraints": ["Analysis failed"],
+                "recommendations": ["Re-analysis required"],
                 "analysis_date": datetime.now().isoformat(),
                 "error": str(e)
             }
     
     def _estimate_land_use_distribution(self, lat: float, lon: float) -> Dict[str, float]:
-        """基于地理位置估算土地利用分布"""
-        # 根据中国不同地区的特点估算土地利用分布
+        """Estimate land use distribution based on geographic location"""
+        # Estimate land use distribution based on characteristics of different regions in China
         
-        if 20 <= lat <= 35 and 110 <= lon <= 125:  # 华南地区
+        if 20 <= lat <= 35 and 110 <= lon <= 125:  # South China
             return {
-                "水体": 0.15,  # 河流湖泊较多
-                "植被": 0.45,  # 亚热带植被丰富
-                "裸地": 0.25,  # 空地相对较少
-                "建筑": 0.15   # 城市化程度高
+                "Water": 0.15,       # More rivers and lakes
+                "Vegetation": 0.45,  # Rich subtropical vegetation
+                "Bare Land": 0.25,   # Relatively less open land
+                "Buildings": 0.15    # High urbanization
             }
-        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # 西南地区
+        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # Southwest China
             return {
-                "水体": 0.10,  # 山区河流
-                "植被": 0.50,  # 森林覆盖率高
-                "裸地": 0.30,  # 山区空地较多
-                "建筑": 0.10   # 城市化程度较低
+                "Water": 0.10,       # Mountain rivers
+                "Vegetation": 0.50,  # High forest coverage
+                "Bare Land": 0.30,   # More open land in mountains
+                "Buildings": 0.10    # Lower urbanization
             }
-        elif 30 <= lat <= 45 and 120 <= lon <= 135:  # 华东地区
+        elif 30 <= lat <= 45 and 120 <= lon <= 135:  # East China
             return {
-                "水体": 0.20,  # 水网密布
-                "植被": 0.35,  # 温带植被
-                "裸地": 0.25,  # 空地适中
-                "建筑": 0.20   # 城市化程度高
+                "Water": 0.20,       # Dense water network
+                "Vegetation": 0.35,  # Temperate vegetation
+                "Bare Land": 0.25,   # Moderate open land
+                "Buildings": 0.20    # High urbanization
             }
-        elif 35 <= lat <= 50 and 110 <= lon <= 125:  # 华北地区
+        elif 35 <= lat <= 50 and 110 <= lon <= 125:  # North China
             return {
-                "水体": 0.05,  # 水资源相对缺乏
-                "植被": 0.25,  # 温带植被
-                "裸地": 0.45,  # 空地较多
-                "建筑": 0.25   # 城市化程度中等
+                "Water": 0.05,       # Relatively scarce water resources
+                "Vegetation": 0.25,  # Temperate vegetation
+                "Bare Land": 0.45,   # More open land
+                "Buildings": 0.25    # Moderate urbanization
             }
-        elif 40 <= lat <= 55 and 80 <= lon <= 100:  # 西北地区
+        elif 40 <= lat <= 55 and 80 <= lon <= 100:  # Northwest China
             return {
-                "水体": 0.02,  # 水资源缺乏
-                "植被": 0.15,  # 植被稀少
-                "裸地": 0.70,  # 空地很多
-                "建筑": 0.13   # 城市化程度低
+                "Water": 0.02,       # Scarce water resources
+                "Vegetation": 0.15,  # Sparse vegetation
+                "Bare Land": 0.70,   # Abundant open land
+                "Buildings": 0.13    # Low urbanization
             }
-        else:  # 其他地区
+        else:  # Other regions
             return {
-                "水体": 0.10,
-                "植被": 0.35,
-                "裸地": 0.40,
-                "建筑": 0.15
+                "Water": 0.10,
+                "Vegetation": 0.35,
+                "Bare Land": 0.40,
+                "Buildings": 0.15
             }
     
     def _identify_suitable_areas(self, land_use_distribution: Dict[str, float]) -> List[Dict[str, Any]]:
-        """识别适合建设数据中心的区域"""
+        """Identify areas suitable for data center construction"""
         suitable_areas = []
         
-        # 裸地区域
-        bare_land_ratio = land_use_distribution.get("裸地", 0)
+        # Bare land areas
+        bare_land_ratio = land_use_distribution.get("Bare Land", 0)
         if bare_land_ratio > 0.2:
             suitable_areas.append({
-                "type": "裸地",
+                "type": "Bare Land",
                 "area_ratio": bare_land_ratio,
                 "suitability_score": min(bare_land_ratio * 2, 1.0),
-                "description": "适合直接建设，成本较低",
-                "priority": "高"
+                "description": "Suitable for direct construction, lower cost",
+                "priority": "High"
             })
         
-        # 绿地区域（需要土地整理）
-        vegetation_ratio = land_use_distribution.get("植被", 0)
+        # Green/vegetation areas (require land preparation)
+        vegetation_ratio = land_use_distribution.get("Vegetation", 0)
         if vegetation_ratio > 0.3:
             suitable_areas.append({
-                "type": "绿地",
+                "type": "Green Land",
                 "area_ratio": vegetation_ratio,
                 "suitability_score": vegetation_ratio * 0.6,
-                "description": "需要土地整理，但环境较好",
-                "priority": "中"
+                "description": "Requires land preparation, but good environment",
+                "priority": "Medium"
             })
         
-        # 建筑密度较低的区域
-        building_ratio = land_use_distribution.get("建筑", 0)
+        # Low building density areas
+        building_ratio = land_use_distribution.get("Buildings", 0)
         if building_ratio < 0.3:
             suitable_areas.append({
-                "type": "低密度建筑区",
+                "type": "Low-Density Built-up Area",
                 "area_ratio": 1 - building_ratio,
                 "suitability_score": (1 - building_ratio) * 0.8,
-                "description": "建筑密度低，适合建设",
-                "priority": "中"
+                "description": "Low building density, suitable for construction",
+                "priority": "Medium"
             })
         
         return suitable_areas
     
     def _analyze_empty_land(self, suitable_areas: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """分析空地情况"""
+        """Analyze available land conditions"""
         if not suitable_areas:
             return {
                 "total_suitable_area": 0,
                 "largest_suitable_area": 0,
-                "suitability_level": "差",
-                "construction_feasibility": "不可行"
+                "suitability_level": "Poor",
+                "construction_feasibility": "Not feasible"
             }
         
-        # 计算总适宜面积
+        # Calculate total suitable area
         total_suitable_area = sum(area["area_ratio"] for area in suitable_areas)
         largest_suitable_area = max(area["area_ratio"] for area in suitable_areas)
         
-        # 评估适宜性等级
+        # Evaluate suitability level
         if total_suitable_area >= 0.6:
-            suitability_level = "优秀"
-            construction_feasibility = "完全可行"
+            suitability_level = "Excellent"
+            construction_feasibility = "Fully feasible"
         elif total_suitable_area >= 0.4:
-            suitability_level = "良好"
-            construction_feasibility = "可行"
+            suitability_level = "Good"
+            construction_feasibility = "Feasible"
         elif total_suitable_area >= 0.2:
-            suitability_level = "一般"
-            construction_feasibility = "基本可行"
+            suitability_level = "Average"
+            construction_feasibility = "Basically feasible"
         else:
-            suitability_level = "较差"
-            construction_feasibility = "需要优化"
+            suitability_level = "Below Average"
+            construction_feasibility = "Needs optimization"
         
         return {
             "total_suitable_area": round(total_suitable_area, 3),
@@ -413,116 +413,116 @@ class ImageAnalysisService:
         }
     
     def _identify_constraints(self, land_use_distribution: Dict[str, float]) -> List[str]:
-        """识别约束条件"""
+        """Identify constraints"""
         constraints = []
         
-        # 建筑密度约束
-        building_ratio = land_use_distribution.get("建筑", 0)
+        # Building density constraints
+        building_ratio = land_use_distribution.get("Buildings", 0)
         if building_ratio > 0.5:
-            constraints.append("建筑密度过高，建设成本较高")
+            constraints.append("Building density too high, construction costs will be elevated")
         elif building_ratio > 0.3:
-            constraints.append("建筑密度较高，需要合理规划")
+            constraints.append("Building density is relatively high, careful planning required")
         
-        # 水体约束
-        water_ratio = land_use_distribution.get("水体", 0)
+        # Water body constraints
+        water_ratio = land_use_distribution.get("Water", 0)
         if water_ratio > 0.3:
-            constraints.append("水体较多，需要考虑防洪措施")
+            constraints.append("High water coverage, flood control measures required")
         elif water_ratio > 0.2:
-            constraints.append("水体较多，需要评估水文条件")
+            constraints.append("Significant water coverage, hydrological conditions need assessment")
         
-        # 植被约束
-        vegetation_ratio = land_use_distribution.get("植被", 0)
+        # Vegetation constraints
+        vegetation_ratio = land_use_distribution.get("Vegetation", 0)
         if vegetation_ratio > 0.6:
-            constraints.append("植被覆盖率高，需要土地整理")
+            constraints.append("High vegetation coverage rate, land preparation required")
         elif vegetation_ratio > 0.4:
-            constraints.append("植被覆盖率较高，需要部分土地整理")
+            constraints.append("Relatively high vegetation coverage, partial land preparation needed")
         
-        # 空地约束
-        bare_land_ratio = land_use_distribution.get("裸地", 0)
+        # Open land constraints
+        bare_land_ratio = land_use_distribution.get("Bare Land", 0)
         if bare_land_ratio < 0.1:
-            constraints.append("空地不足，需要大量土地整理")
+            constraints.append("Insufficient open land, extensive land preparation required")
         elif bare_land_ratio < 0.2:
-            constraints.append("空地较少，需要适度土地整理")
+            constraints.append("Limited open land, moderate land preparation required")
         
         return constraints
     
     def _generate_land_recommendations(self, suitable_areas: List[Dict[str, Any]], 
                                      empty_land_analysis: Dict[str, Any],
                                      constraints: List[str]) -> List[str]:
-        """生成土地建议"""
+        """Generate land use recommendations"""
         recommendations = []
         
-        # 基于适宜性等级的建议
-        suitability_level = empty_land_analysis.get("suitability_level", "一般")
+        # Recommendations based on suitability level
+        suitability_level = empty_land_analysis.get("suitability_level", "Average")
         
-        if suitability_level == "优秀":
+        if suitability_level == "Excellent":
             recommendations.extend([
-                "该地区空地充足，非常适合建设数据中心",
-                "建议优先考虑此位置进行数据中心建设",
-                "可以规划大型数据中心园区"
+                "This area has abundant open land, very suitable for data center construction",
+                "Recommended to prioritize this location for data center development",
+                "Large-scale data center campus can be planned"
             ])
-        elif suitability_level == "良好":
+        elif suitability_level == "Good":
             recommendations.extend([
-                "该地区空地较多，适合建设数据中心",
-                "建议进行详细的地块规划",
-                "可以考虑建设中型数据中心"
+                "This area has sufficient open land, suitable for data center construction",
+                "Detailed land parcel planning is recommended",
+                "Consider building a medium-sized data center"
             ])
-        elif suitability_level == "一般":
+        elif suitability_level == "Average":
             recommendations.extend([
-                "该地区空地有限，需要优化布局",
-                "建议寻找更大的空地或分阶段建设",
-                "适合建设小型数据中心"
+                "Open land in this area is limited, layout optimization is needed",
+                "Recommend finding larger open land or phased construction",
+                "Suitable for small-scale data center construction"
             ])
         else:
             recommendations.extend([
-                "该地区空地不足，不适合建设数据中心",
-                "建议寻找其他位置",
-                "如必须建设，需要大量土地整理工作"
+                "Insufficient open land in this area, not suitable for data center construction",
+                "Recommend looking for alternative locations",
+                "If construction is necessary, extensive land preparation will be required"
             ])
         
-        # 基于约束条件的建议
-        if "建筑密度过高" in constraints:
-            recommendations.append("建议选择建筑密度较低的区域")
+        # Recommendations based on constraints
+        if "Building density too high" in constraints:
+            recommendations.append("Recommend selecting areas with lower building density")
         
-        if "水体较多" in constraints:
-            recommendations.append("建议进行详细的水文地质勘察")
+        if "High water coverage" in constraints:
+            recommendations.append("Recommend conducting detailed hydrological and geological surveys")
         
-        if "植被覆盖率高" in constraints:
-            recommendations.append("建议制定环保友好的土地整理方案")
+        if "High vegetation coverage rate" in constraints:
+            recommendations.append("Recommend developing an environmentally-friendly land preparation plan")
         
-        if "空地不足" in constraints:
-            recommendations.append("建议考虑分阶段建设或寻找其他位置")
+        if "Insufficient open land" in constraints:
+            recommendations.append("Recommend considering phased construction or alternative locations")
         
         return recommendations
     
     
     def detect_land_changes(self, image1: np.ndarray, image2: np.ndarray) -> Dict[str, Any]:
         """
-        检测土地利用变化
+        Detect land use changes
         
         Args:
-            image1: 早期图像
-            image2: 后期图像
+            image1: Earlier image
+            image2: Later image
             
         Returns:
-            变化检测结果
+            Change detection results
         """
         try:
-            # 图像预处理
+            # Image preprocessing
             gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
             gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
             
-            # 计算差异
+            # Calculate difference
             diff = cv2.absdiff(gray1, gray2)
             
-            # 阈值处理
+            # Threshold processing
             _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
             
-            # 形态学操作
+            # Morphological operations
             kernel = np.ones((5,5), np.uint8)
             thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
             
-            # 计算变化区域
+            # Calculate changed areas
             change_pixels = np.sum(thresh > 0)
             total_pixels = thresh.shape[0] * thresh.shape[1]
             change_ratio = change_pixels / total_pixels
@@ -535,7 +535,7 @@ class ImageAnalysisService:
             }
             
         except Exception as e:
-            print(f"变化检测失败: {e}")
+            print(f"Change detection failed: {e}")
             return {
                 "change_ratio": 0,
                 "change_pixels": 0,
@@ -545,27 +545,27 @@ class ImageAnalysisService:
     
     def predict_land_use_trend(self, historical_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        预测土地利用趋势
+        Predict land use trends
         
         Args:
-            historical_data: 历史土地利用数据
+            historical_data: Historical land use data
             
         Returns:
-            趋势预测结果
+            Trend prediction results
         """
         try:
-            # 简单的趋势分析
+            # Simple trend analysis
             if len(historical_data) < 2:
-                return {"trend": "数据不足", "prediction": "无法预测"}
+                return {"trend": "Insufficient data", "prediction": "Unable to predict"}
             
-            # 分析各类土地面积变化趋势
+            # Analyze area change trends for each land type
             trends = {}
-            for land_type in ["水体", "植被", "裸地", "建筑"]:
+            for land_type in ["Water", "Vegetation", "Bare Land", "Buildings"]:
                 values = [data.get("land_use_distribution", {}).get(land_type, 0) 
                          for data in historical_data]
                 
                 if len(values) >= 2:
-                    trend = "增长" if values[-1] > values[0] else "减少"
+                    trend = "Increasing" if values[-1] > values[0] else "Decreasing"
                     trends[land_type] = {
                         "trend": trend,
                         "change_rate": (values[-1] - values[0]) / values[0] if values[0] > 0 else 0
@@ -573,10 +573,10 @@ class ImageAnalysisService:
             
             return {
                 "trends": trends,
-                "prediction": "基于历史数据的简单趋势分析",
+                "prediction": "Simple trend analysis based on historical data",
                 "confidence": 0.6
             }
             
         except Exception as e:
-            print(f"趋势预测失败: {e}")
+            print(f"Trend prediction failed: {e}")
             return {"error": str(e)}

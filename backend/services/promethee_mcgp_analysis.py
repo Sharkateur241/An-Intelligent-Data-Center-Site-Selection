@@ -1,5 +1,5 @@
 """
-PROMETHEE-MCGP决策分析服务 - 基于参考文献2的多准则决策方法
+PROMETHEE-MCGP Decision Analysis Service - Multi-criteria decision method based on Reference 2
 """
 
 import numpy as np
@@ -10,76 +10,76 @@ from datetime import datetime
 
 @dataclass
 class CriteriaWeight:
-    """准则权重"""
+    """Criteria weight"""
     name: str
     weight: float
-    is_benefit: bool  # True为效益型，False为成本型
+    is_benefit: bool  # True = benefit type, False = cost type
 
 @dataclass
 class AlternativeScore:
-    """方案评分"""
+    """Alternative score"""
     name: str
     scores: Dict[str, float]
     net_flow: float
     ranking: int
 
 class PROMETHEEMCGP:
-    """PROMETHEE-MCGP决策分析类"""
+    """PROMETHEE-MCGP Decision Analysis Class"""
     
     def __init__(self):
-        """初始化PROMETHEE-MCGP分析器"""
-        # 根据参考文献2定义的指标体系
+        """Initialize the PROMETHEE-MCGP analyzer"""
+        # Indicator system defined according to Reference 2
         self.economic_criteria = {
-            "internet_penetration": {"name": "互联网普及率(%)", "weight": 0.25, "is_benefit": True},
-            "transportation_density": {"name": "交通密度(km/km²)", "weight": 0.20, "is_benefit": True},
-            "disaster_losses": {"name": "自然灾害直接经济损失(亿元)", "weight": 0.15, "is_benefit": False},
-            "water_consumption": {"name": "万元GDP用水量(m³)", "weight": 0.20, "is_benefit": False},
-            "disposable_income": {"name": "城镇居民人均可支配收入(元)", "weight": 0.20, "is_benefit": True}
+            "internet_penetration": {"name": "Internet Penetration Rate (%)", "weight": 0.25, "is_benefit": True},
+            "transportation_density": {"name": "Transportation Density (km/km²)", "weight": 0.20, "is_benefit": True},
+            "disaster_losses": {"name": "Direct Economic Losses from Natural Disasters (100M CNY)", "weight": 0.15, "is_benefit": False},
+            "water_consumption": {"name": "Water Consumption per 10k CNY GDP (m³)", "weight": 0.20, "is_benefit": False},
+            "disposable_income": {"name": "Per Capita Disposable Income of Urban Residents (CNY)", "weight": 0.20, "is_benefit": True}
         }
         
         self.environmental_criteria = {
-            "annual_temperature": {"name": "年平均温度(℃)", "weight": 0.30, "is_benefit": False, "ideal": 15.0},
-            "hydropower_resources": {"name": "水力资源(亿kWh/km²)", "weight": 0.25, "is_benefit": True},
-            "wind_resources": {"name": "风能资源(亿kWh/km²)", "weight": 0.25, "is_benefit": True},
-            "air_quality_rate": {"name": "空气质量优良率(%)", "weight": 0.20, "is_benefit": True}
+            "annual_temperature": {"name": "Annual Average Temperature (℃)", "weight": 0.30, "is_benefit": False, "ideal": 15.0},
+            "hydropower_resources": {"name": "Hydropower Resources (100M kWh/km²)", "weight": 0.25, "is_benefit": True},
+            "wind_resources": {"name": "Wind Energy Resources (100M kWh/km²)", "weight": 0.25, "is_benefit": True},
+            "air_quality_rate": {"name": "Air Quality Excellence Rate (%)", "weight": 0.20, "is_benefit": True}
         }
         
         self.energy_criteria = {
-            "solar_irradiance": {"name": "太阳能年辐射量(kWh/m²)", "weight": 0.40, "is_benefit": True},
-            "wind_speed": {"name": "平均风速(m/s)", "weight": 0.30, "is_benefit": True},
-            "renewable_coverage": {"name": "可再生能源覆盖率(%)", "weight": 0.30, "is_benefit": True}
+            "solar_irradiance": {"name": "Annual Solar Irradiance (kWh/m²)", "weight": 0.40, "is_benefit": True},
+            "wind_speed": {"name": "Average Wind Speed (m/s)", "weight": 0.30, "is_benefit": True},
+            "renewable_coverage": {"name": "Renewable Energy Coverage Rate (%)", "weight": 0.30, "is_benefit": True}
         }
     
     async def analyze_data_center_site_selection(self, lat: float, lon: float, 
                                                city_name: str = None) -> Dict[str, Any]:
         """
-        数据中心选址PROMETHEE-MCGP分析
+        PROMETHEE-MCGP analysis for data center site selection
         
         Args:
-            lat: 纬度
-            lon: 经度
-            city_name: 城市名称
+            lat: Latitude
+            lon: Longitude
+            city_name: City name
             
         Returns:
-            选址分析结果
+            Site selection analysis results
         """
         try:
-            # 1. 获取基础数据
+            # 1. Get base data
             economic_data = await self._get_economic_data(lat, lon, city_name)
             environmental_data = await self._get_environmental_data(lat, lon, city_name)
             energy_data = await self._get_energy_data(lat, lon, city_name)
             
-            # 2. 第一阶段：PROMETHEE分析经济因素
+            # 2. Phase 1: PROMETHEE analysis of economic factors
             economic_ranking = await self._promethee_analysis(
-                economic_data, self.economic_criteria, "经济因素"
+                economic_data, self.economic_criteria, "Economic Factors"
             )
             
-            # 3. 第二阶段：MCGP综合分析
+            # 3. Phase 2: MCGP comprehensive analysis
             mcgp_result = await self._mcgp_analysis(
                 economic_ranking, environmental_data, energy_data
             )
             
-            # 4. 生成综合评分和推荐
+            # 4. Generate comprehensive score and recommendations
             final_ranking = await self._generate_final_ranking(
                 economic_ranking, mcgp_result
             )
@@ -92,42 +92,42 @@ class PROMETHEEMCGP:
                 "mcgp_result": mcgp_result,
                 "final_ranking": final_ranking,
                 "recommendation": self._generate_recommendation(final_ranking),
-                "methodology": "PROMETHEE-MCGP集成方法"
+                "methodology": "PROMETHEE-MCGP Integrated Method"
             }
             
         except Exception as e:
-            print(f"PROMETHEE-MCGP分析失败: {e}")
+            print(f"PROMETHEE-MCGP analysis failed: {e}")
             return {
                 "error": str(e),
                 "location": {"latitude": lat, "longitude": lon, "city": city_name}
             }
     
     async def _get_economic_data(self, lat: float, lon: float, city_name: str) -> Dict[str, float]:
-        """获取经济因素数据"""
-        # 基于地理位置和城市特征的经济数据
+        """Get economic factor data"""
+        # Economic data based on geographic location and city characteristics
         city_data = {
-            "北京": {"internet_penetration": 85.0, "transportation_density": 1.2, 
-                    "disaster_losses": 0.5, "water_consumption": 45.0, "disposable_income": 75000},
-            "上海": {"internet_penetration": 88.0, "transportation_density": 1.5, 
-                    "disaster_losses": 0.3, "water_consumption": 40.0, "disposable_income": 78000},
-            "深圳": {"internet_penetration": 92.0, "transportation_density": 1.8, 
-                    "disaster_losses": 0.2, "water_consumption": 35.0, "disposable_income": 82000},
-            "杭州": {"internet_penetration": 87.0, "transportation_density": 1.3, 
-                    "disaster_losses": 0.4, "water_consumption": 42.0, "disposable_income": 76000},
-            "中卫": {"internet_penetration": 65.0, "transportation_density": 0.8, 
-                    "disaster_losses": 0.1, "water_consumption": 25.0, "disposable_income": 45000},
-            "贵阳": {"internet_penetration": 70.0, "transportation_density": 1.0, 
-                    "disaster_losses": 0.2, "water_consumption": 30.0, "disposable_income": 50000},
-            "广州": {"internet_penetration": 89.0, "transportation_density": 1.6, 
-                    "disaster_losses": 0.3, "water_consumption": 38.0, "disposable_income": 80000},
-            "兰州": {"internet_penetration": 68.0, "transportation_density": 0.9, 
-                    "disaster_losses": 0.2, "water_consumption": 28.0, "disposable_income": 48000}
+            "Beijing":    {"internet_penetration": 85.0, "transportation_density": 1.2,
+                           "disaster_losses": 0.5, "water_consumption": 45.0, "disposable_income": 75000},
+            "Shanghai":   {"internet_penetration": 88.0, "transportation_density": 1.5,
+                           "disaster_losses": 0.3, "water_consumption": 40.0, "disposable_income": 78000},
+            "Shenzhen":   {"internet_penetration": 92.0, "transportation_density": 1.8,
+                           "disaster_losses": 0.2, "water_consumption": 35.0, "disposable_income": 82000},
+            "Hangzhou":   {"internet_penetration": 87.0, "transportation_density": 1.3,
+                           "disaster_losses": 0.4, "water_consumption": 42.0, "disposable_income": 76000},
+            "Zhongwei":   {"internet_penetration": 65.0, "transportation_density": 0.8,
+                           "disaster_losses": 0.1, "water_consumption": 25.0, "disposable_income": 45000},
+            "Guiyang":    {"internet_penetration": 70.0, "transportation_density": 1.0,
+                           "disaster_losses": 0.2, "water_consumption": 30.0, "disposable_income": 50000},
+            "Guangzhou":  {"internet_penetration": 89.0, "transportation_density": 1.6,
+                           "disaster_losses": 0.3, "water_consumption": 38.0, "disposable_income": 80000},
+            "Lanzhou":    {"internet_penetration": 68.0, "transportation_density": 0.9,
+                           "disaster_losses": 0.2, "water_consumption": 28.0, "disposable_income": 48000}
         }
         
         if city_name and city_name in city_data:
             return city_data[city_name]
         
-        # 基于地理位置的估算
+        # Estimation based on geographic location
         base_data = {
             "internet_penetration": 70.0 + (90 - abs(lat)) * 0.5,
             "transportation_density": 0.8 + (90 - abs(lat)) * 0.02,
@@ -139,27 +139,27 @@ class PROMETHEEMCGP:
         return base_data
     
     async def _get_environmental_data(self, lat: float, lon: float, city_name: str) -> Dict[str, float]:
-        """获取环境因素数据"""
-        # 基于地理位置的估算
-        annual_temp = 25.0 - (abs(lat) - 30) * 0.5  # 纬度越高温度越低
+        """Get environmental factor data"""
+        # Estimation based on geographic location
+        annual_temp = 25.0 - (abs(lat) - 30) * 0.5  # Temperature decreases with higher latitude
         
-        # 水资源丰富度
-        if 20 <= lat <= 35 and 110 <= lon <= 125:  # 华南
+        # Water resource abundance
+        if 20 <= lat <= 35 and 110 <= lon <= 125:   # South China
             hydropower = 0.8
-        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # 西南
+        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # Southwest
             hydropower = 0.9
-        elif 30 <= lat <= 45 and 120 <= lon <= 135:  # 华东
+        elif 30 <= lat <= 45 and 120 <= lon <= 135:  # East China
             hydropower = 0.6
         else:
             hydropower = 0.4
         
-        # 风能资源
+        # Wind energy resources
         wind_resources = 0.3 + (90 - abs(lat)) * 0.01
         
-        # 空气质量
-        if 40 <= lat <= 55 and 80 <= lon <= 100:  # 西北
+        # Air quality
+        if 40 <= lat <= 55 and 80 <= lon <= 100:    # Northwest
             air_quality = 0.85
-        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # 西南
+        elif 25 <= lat <= 40 and 100 <= lon <= 110:  # Southwest
             air_quality = 0.90
         else:
             air_quality = 0.70
@@ -172,22 +172,22 @@ class PROMETHEEMCGP:
         }
     
     async def _get_energy_data(self, lat: float, lon: float, city_name: str) -> Dict[str, float]:
-        """获取能源因素数据"""
-        # 太阳能辐射量
+        """Get energy factor data"""
+        # Solar irradiance
         solar_irradiance = 1000 + (90 - abs(lat)) * 20
         if lon > 100:
             solar_irradiance += 200
         elif lon < 110:
             solar_irradiance -= 100
         
-        # 平均风速
+        # Average wind speed
         wind_speed = 3.0 + (90 - abs(lat)) * 0.1
         if lon > 100:
             wind_speed += 1.0
         elif lon < 110:
             wind_speed -= 0.5
         
-        # 可再生能源覆盖率
+        # Renewable energy coverage rate
         renewable_coverage = min(solar_irradiance / 2000 + wind_speed / 6.0, 1.0)
         
         return {
@@ -199,18 +199,18 @@ class PROMETHEEMCGP:
     async def _promethee_analysis(self, data: Dict[str, float], 
                                 criteria: Dict[str, Dict], 
                                 category: str) -> Dict[str, Any]:
-        """PROMETHEE分析"""
+        """PROMETHEE analysis"""
         try:
-            # 数据标准化
+            # Data normalization
             normalized_data = self._normalize_data(data, criteria)
             
-            # 计算偏好函数
+            # Calculate preference function
             preference_matrix = self._calculate_preference_matrix(normalized_data, criteria)
             
-            # 计算流值
+            # Calculate flow values
             leaving_flow, entering_flow, net_flow = self._calculate_flows(preference_matrix)
             
-            # 生成排名
+            # Generate ranking
             ranking = self._generate_ranking(net_flow)
             
             return {
@@ -225,45 +225,45 @@ class PROMETHEEMCGP:
             }
             
         except Exception as e:
-            print(f"PROMETHEE分析失败: {e}")
+            print(f"PROMETHEE analysis failed: {e}")
             return {"error": str(e), "category": category}
     
     def _normalize_data(self, data: Dict[str, float], 
                        criteria: Dict[str, Dict]) -> Dict[str, float]:
-        """数据标准化"""
+        """Data normalization"""
         normalized = {}
         
         for criterion, value in data.items():
             if criterion in criteria:
-                # 简单的线性标准化到[0,1]
+                # Simple linear normalization to [0, 1]
                 if criteria[criterion]["is_benefit"]:
-                    # 效益型：值越大越好
+                    # Benefit type: higher value is better
                     normalized[criterion] = min(value / 100, 1.0)
                 else:
-                    # 成本型：值越小越好
+                    # Cost type: lower value is better
                     normalized[criterion] = max(1.0 - value / 100, 0.0)
         
         return normalized
     
     def _calculate_preference_matrix(self, data: Dict[str, float], 
                                    criteria: Dict[str, Dict]) -> np.ndarray:
-        """计算偏好矩阵"""
+        """Calculate preference matrix"""
         n_criteria = len(criteria)
         criteria_list = list(criteria.keys())
         
-        # 创建偏好矩阵
+        # Create preference matrix
         preference_matrix = np.zeros((n_criteria, n_criteria))
         
         for i, criterion_i in enumerate(criteria_list):
             for j, criterion_j in enumerate(criteria_list):
                 if i != j:
-                    # 使用高斯偏好函数
+                    # Use Gaussian preference function
                     diff = data[criterion_i] - data[criterion_j]
                     weight = criteria[criterion_i]["weight"]
                     
                     if diff > 0:
-                        # 高斯函数
-                        sigma = 0.1  # 标准差
+                        # Gaussian function
+                        sigma = 0.1  # Standard deviation
                         preference = 1 - math.exp(-(diff**2) / (2 * sigma**2))
                         preference_matrix[i, j] = weight * preference
                     else:
@@ -272,33 +272,33 @@ class PROMETHEEMCGP:
         return preference_matrix
     
     def _calculate_flows(self, preference_matrix: np.ndarray) -> Tuple[float, float, float]:
-        """计算流值"""
+        """Calculate flow values"""
         n = preference_matrix.shape[0]
         
-        # 计算流出流
+        # Calculate leaving flow
         leaving_flow = np.sum(preference_matrix, axis=1) / (n - 1)
         
-        # 计算流入流
+        # Calculate entering flow
         entering_flow = np.sum(preference_matrix, axis=0) / (n - 1)
         
-        # 计算净流
+        # Calculate net flow
         net_flow = leaving_flow - entering_flow
         
         return float(leaving_flow[0]), float(entering_flow[0]), float(net_flow[0])
     
     def _generate_ranking(self, net_flow: float) -> Dict[str, Any]:
-        """生成排名"""
+        """Generate ranking"""
         if net_flow > 0.1:
-            level = "优秀"
+            level = "Excellent"
             score = min(net_flow * 10, 100)
         elif net_flow > 0:
-            level = "良好"
+            level = "Good"
             score = 70 + net_flow * 30
         elif net_flow > -0.1:
-            level = "一般"
+            level = "Average"
             score = 50 + (net_flow + 0.1) * 200
         else:
-            level = "较差"
+            level = "Below Average"
             score = max(net_flow * 50, 0)
         
         return {
@@ -310,9 +310,9 @@ class PROMETHEEMCGP:
     async def _mcgp_analysis(self, economic_ranking: Dict[str, Any], 
                            environmental_data: Dict[str, float],
                            energy_data: Dict[str, float]) -> Dict[str, Any]:
-        """MCGP分析"""
+        """MCGP analysis"""
         try:
-            # 构建目标函数
+            # Build objective function
             goals = {
                 "economic_score": economic_ranking.get("score", 50),
                 "temperature_suitability": self._calculate_temperature_suitability(
@@ -325,14 +325,14 @@ class PROMETHEEMCGP:
                 "renewable_score": energy_data["renewable_coverage"]
             }
             
-            # 计算权重
+            # Calculate weights
             weights = {
                 "economic": 0.3,
                 "environmental": 0.4,
                 "energy": 0.3
             }
             
-            # 综合评分
+            # Comprehensive score
             comprehensive_score = (
                 goals["economic_score"] * weights["economic"] +
                 (goals["temperature_suitability"] + goals["hydropower_score"] + 
@@ -348,12 +348,12 @@ class PROMETHEEMCGP:
             }
             
         except Exception as e:
-            print(f"MCGP分析失败: {e}")
+            print(f"MCGP analysis failed: {e}")
             return {"error": str(e)}
     
     def _calculate_temperature_suitability(self, temperature: float) -> float:
-        """计算温度适宜性"""
-        ideal_temp = 15.0  # 理想温度
+        """Calculate temperature suitability"""
+        ideal_temp = 15.0  # Ideal temperature
         temp_diff = abs(temperature - ideal_temp)
         
         if temp_diff <= 2:
@@ -367,27 +367,27 @@ class PROMETHEEMCGP:
     
     async def _generate_final_ranking(self, economic_ranking: Dict[str, Any], 
                                     mcgp_result: Dict[str, Any]) -> Dict[str, Any]:
-        """生成最终排名"""
+        """Generate final ranking"""
         try:
             economic_score = economic_ranking.get("score", 50)
             comprehensive_score = mcgp_result.get("comprehensive_score", 50)
             
-            # 综合评分
+            # Composite score
             final_score = (economic_score * 0.4 + comprehensive_score * 0.6)
             
-            # 确定等级
+            # Determine level
             if final_score >= 85:
-                level = "优秀"
-                recommendation = "强烈推荐"
+                level = "Excellent"
+                recommendation = "Strongly Recommended"
             elif final_score >= 70:
-                level = "良好"
-                recommendation = "推荐"
+                level = "Good"
+                recommendation = "Recommended"
             elif final_score >= 55:
-                level = "一般"
-                recommendation = "可考虑"
+                level = "Average"
+                recommendation = "Worth Considering"
             else:
-                level = "较差"
-                recommendation = "不推荐"
+                level = "Below Average"
+                recommendation = "Not Recommended"
             
             return {
                 "final_score": round(final_score, 2),
@@ -398,40 +398,40 @@ class PROMETHEEMCGP:
             }
             
         except Exception as e:
-            print(f"最终排名生成失败: {e}")
+            print(f"Final ranking generation failed: {e}")
             return {"error": str(e)}
     
     def _generate_recommendation(self, final_ranking: Dict[str, Any]) -> Dict[str, Any]:
-        """生成推荐建议"""
+        """Generate recommendation"""
         try:
-            level = final_ranking.get("level", "一般")
+            level = final_ranking.get("level", "Average")
             score = final_ranking.get("final_score", 50)
             
             recommendations = []
             
-            if level == "优秀":
+            if level == "Excellent":
                 recommendations.extend([
-                    "该地区非常适合建设数据中心",
-                    "建议优先考虑此位置",
-                    "可以建设大型数据中心园区"
+                    "This area is highly suitable for data center construction",
+                    "Recommend prioritizing this location",
+                    "A large-scale data center campus can be planned"
                 ])
-            elif level == "良好":
+            elif level == "Good":
                 recommendations.extend([
-                    "该地区适合建设数据中心",
-                    "建议进行详细可行性研究",
-                    "可以考虑建设中型数据中心"
+                    "This area is suitable for data center construction",
+                    "Recommend conducting a detailed feasibility study",
+                    "Consider building a medium-sized data center"
                 ])
-            elif level == "一般":
+            elif level == "Average":
                 recommendations.extend([
-                    "该地区可以建设数据中心，但需要优化",
-                    "建议改善基础设施条件",
-                    "适合建设小型数据中心"
+                    "This area can support a data center but requires optimization",
+                    "Recommend improving infrastructure conditions",
+                    "Suitable for a small-scale data center"
                 ])
             else:
                 recommendations.extend([
-                    "该地区不适合建设数据中心",
-                    "建议寻找其他位置",
-                    "如必须建设，需要大量投资改善条件"
+                    "This area is not suitable for data center construction",
+                    "Recommend finding an alternative location",
+                    "If construction is required, significant investment will be needed to improve conditions"
                 ])
             
             return {
@@ -442,34 +442,34 @@ class PROMETHEEMCGP:
             }
             
         except Exception as e:
-            print(f"推荐建议生成失败: {e}")
+            print(f"Recommendation generation failed: {e}")
             return {"error": str(e)}
     
     def _get_next_steps(self, level: str) -> List[str]:
-        """获取下一步建议"""
-        if level == "优秀":
+        """Get next step recommendations"""
+        if level == "Excellent":
             return [
-                "进行详细的环境影响评估",
-                "制定具体的建设方案",
-                "申请相关许可证和审批"
+                "Conduct a detailed environmental impact assessment",
+                "Develop a specific construction plan",
+                "Apply for relevant permits and approvals"
             ]
-        elif level == "良好":
+        elif level == "Good":
             return [
-                "进行更详细的技术可行性研究",
-                "评估基础设施改善需求",
-                "制定风险缓解计划"
+                "Conduct a more detailed technical feasibility study",
+                "Assess infrastructure improvement requirements",
+                "Develop a risk mitigation plan"
             ]
-        elif level == "一般":
+        elif level == "Average":
             return [
-                "评估改善成本与收益",
-                "寻找替代方案",
-                "考虑分阶段建设"
+                "Evaluate the cost-benefit of improvements",
+                "Explore alternative solutions",
+                "Consider phased construction"
             ]
         else:
             return [
-                "重新评估选址标准",
-                "寻找其他候选位置",
-                "考虑其他建设模式"
+                "Re-evaluate site selection criteria",
+                "Identify other candidate locations",
+                "Consider alternative construction models"
             ]
     
     async def analyze_data_center_site_selection_with_ai(self, latitude: float, longitude: float, city_name: str, 
@@ -477,31 +477,31 @@ class PROMETHEEMCGP:
                                                        ai_power_supply: Dict[str, Any], ai_energy_storage: Dict[str, Any],
                                                        ai_decision: Dict[str, Any]) -> Dict[str, Any]:
         """
-        使用AI分析结果进行PROMETHEE-MCGP分析
+        PROMETHEE-MCGP analysis using AI analysis results
         
         Args:
-            latitude: 纬度
-            longitude: 经度
-            city_name: 城市名称
-            ai_multimodal: 多模态AI分析结果
-            ai_energy: 能源AI分析结果
-            ai_power_supply: 供电AI分析结果
-            ai_energy_storage: 储能AI分析结果
-            ai_decision: 决策AI分析结果
+            latitude: Latitude
+            longitude: Longitude
+            city_name: City name
+            ai_multimodal: Multimodal AI analysis results
+            ai_energy: Energy AI analysis results
+            ai_power_supply: Power supply AI analysis results
+            ai_energy_storage: Energy storage AI analysis results
+            ai_decision: Decision AI analysis results
             
         Returns:
-            综合PROMETHEE-MCGP分析结果
+            Comprehensive PROMETHEE-MCGP analysis results
         """
         try:
-            # 从AI分析结果中提取评分
+            # Extract scores from AI analysis results
             scores = self._extract_scores_from_ai_results(
                 ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision
             )
             
-            # 使用提取的评分进行PROMETHEE-MCGP分析
+            # Perform PROMETHEE-MCGP analysis using extracted scores
             analysis_result = self._perform_promethee_mcgp_analysis(scores)
             
-            # 添加AI分析结果的引用
+            # Add references to AI analysis results
             analysis_result["ai_analysis_integration"] = {
                 "multimodal_analysis": ai_multimodal.get("success", False),
                 "energy_analysis": ai_energy.get("success", False),
@@ -515,53 +515,80 @@ class PROMETHEEMCGP:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI集成PROMETHEE-MCGP分析失败: {str(e)}",
+                "error": f"AI-integrated PROMETHEE-MCGP analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     def _extract_scores_from_ai_results(self, ai_multimodal: Dict[str, Any], ai_energy: Dict[str, Any],
                                       ai_power_supply: Dict[str, Any], ai_energy_storage: Dict[str, Any],
                                       ai_decision: Dict[str, Any]) -> Dict[str, float]:
-        """从AI分析结果中提取评分"""
+        """Extract scores from AI analysis results"""
         scores = {}
+
+        def _extract_score_from_text(text: str) -> Optional[float]:
+            """Best-effort extraction of a 0–100 score from free-text AI output.
+
+            Looks for patterns like "8/10", "8.5 / 10", or "85%" and scales to 0–100.
+            Returns None when no obvious score is found.
+            """
+            import re
+
+            # Match "x/10" style
+            match = re.search(r"(\d+(?:\.\d+)?)\s*/\s*10", text)
+            if match:
+                val = float(match.group(1)) * 10
+                return max(0.0, min(100.0, val))
+
+            # Match percentage style "85%"
+            match = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+            if match:
+                val = float(match.group(1))
+                return max(0.0, min(100.0, val))
+
+            return None
         
-        # 从多模态分析中提取8个核心维度的评分
+        # Extract scores for the 8 core dimensions from multimodal analysis
         if ai_multimodal.get("success") and "analysis" in ai_multimodal:
             try:
                 analysis = ai_multimodal["analysis"]
                 if isinstance(analysis, dict):
-                    # 提取8个核心维度的评分
+                    # Extract scores for the 8 core dimensions
                     for key in ["energy_supply", "network_connectivity", "geographic_environment", 
                               "policy_regulations", "infrastructure", "human_resources", 
                               "socio_economic", "business_ecosystem"]:
                         if key in analysis and "score" in analysis[key]:
                             scores[f"ai_{key}"] = analysis[key]["score"]
             except Exception as e:
-                print(f"⚠️ 提取多模态分析评分失败: {e}")
-        
-        # 从其他AI分析中提取评分
+                print(f"⚠️ Failed to extract multimodal analysis scores: {e}")
+
+        # Extract scores from other AI analyses
         for ai_result, prefix in [(ai_energy, "energy"), (ai_power_supply, "power_supply"), 
                                 (ai_energy_storage, "energy_storage"), (ai_decision, "decision")]:
             if ai_result.get("success") and "analysis" in ai_result:
                 try:
                     analysis = ai_result["analysis"]
                     if isinstance(analysis, dict):
-                        # 提取总体评分
+                        # Extract overall score
                         if "overall_score" in analysis:
                             scores[f"ai_{prefix}_overall"] = analysis["overall_score"]
-                        # 提取各维度评分
+                        # Extract dimension scores
                         for key, value in analysis.items():
                             if isinstance(value, dict) and "score" in value:
                                 scores[f"ai_{prefix}_{key}"] = value["score"]
+                    elif isinstance(analysis, str):
+                        # Try to pull an overall score from text output
+                        extracted = _extract_score_from_text(analysis)
+                        if extracted is not None:
+                            scores[f"ai_{prefix}_overall"] = extracted
                 except Exception as e:
-                    print(f"⚠️ 提取{prefix}分析评分失败: {e}")
-        
+                    print(f"⚠️ Failed to extract {prefix} analysis scores: {e}")
+
         return scores
     
     def _perform_promethee_mcgp_analysis(self, scores: Dict[str, float]) -> Dict[str, Any]:
-        """执行PROMETHEE-MCGP分析"""
+        """Execute PROMETHEE-MCGP analysis"""
         try:
-            # 构建综合评分矩阵
+            # Build comprehensive scoring matrix
             criteria_weights = {
                 "ai_energy_supply": 0.20,
                 "ai_network_connectivity": 0.15,
@@ -573,7 +600,7 @@ class PROMETHEEMCGP:
                 "ai_business_ecosystem": 0.10
             }
             
-            # 计算加权总分
+            # Calculate weighted total score
             total_score = 0
             weight_sum = 0
             for criterion, weight in criteria_weights.items():
@@ -581,13 +608,20 @@ class PROMETHEEMCGP:
                     total_score += scores[criterion] * weight
                     weight_sum += weight
             
-            # 标准化评分
-            normalized_score = total_score / weight_sum if weight_sum > 0 else 0
+            # If expected AI scores are missing, fall back to mean of available scores
+            # to avoid returning zero when some scores are present
+            if weight_sum > 0:
+                normalized_score = total_score / weight_sum
+            elif scores:
+                normalized_score = sum(scores.values()) / len(scores)
+            else:
+                # No usable AI scores; default to neutral mid-score instead of 0 to avoid false failure
+                normalized_score = 50
             
-            # 生成分析结果
+            # Generate analysis results
             return {
                 "success": True,
-                "analysis_type": "AI集成PROMETHEE-MCGP分析",
+                "analysis_type": "AI Integrated PROMETHEE-MCGP",
                 "overall_score": round(normalized_score, 2),
                 "detailed_scores": scores,
                 "criteria_weights": criteria_weights,
@@ -598,28 +632,28 @@ class PROMETHEEMCGP:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"PROMETHEE-MCGP分析失败: {str(e)}",
+                "error": f"PROMETHEE-MCGP analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
     def _generate_ai_integrated_recommendations(self, scores: Dict[str, float], overall_score: float) -> str:
-        """生成基于AI分析结果的综合建议"""
+        """Generate integrated recommendations based on AI scores"""
         recommendations = []
         
-        # 基于总体评分给出建议
-        if overall_score >= 8:
-            recommendations.append("该地区非常适合建设数据中心，建议优先考虑")
-        elif overall_score >= 6:
-            recommendations.append("该地区适合建设数据中心，但需要关注某些方面")
-        elif overall_score >= 4:
-            recommendations.append("该地区建设数据中心存在一定风险，需要谨慎评估")
+        # Overall guidance
+        if overall_score >= 80:
+            recommendations.append("Strong candidate for data center development; prioritize this site.")
+        elif overall_score >= 60:
+            recommendations.append("Good candidate; proceed with detailed planning and risk checks.")
+        elif overall_score >= 40:
+            recommendations.append("Viable but with notable risks; mitigate weak dimensions before proceeding.")
         else:
-            recommendations.append("该地区不适合建设数据中心，建议重新选址")
+            recommendations.append("Not recommended; consider alternative locations.")
         
-        # 基于各维度评分给出具体建议
+        # Dimension-specific suggestions
         for criterion, score in scores.items():
-            if score < 5:
+            if score < 50:
                 criterion_name = criterion.replace("ai_", "").replace("_", " ")
-                recommendations.append(f"需要改善{criterion_name}方面（当前评分：{score}）")
+                recommendations.append(f"Improve {criterion_name} (current score: {score}).")
         
-        return "；".join(recommendations)
+        return " ".join(recommendations)

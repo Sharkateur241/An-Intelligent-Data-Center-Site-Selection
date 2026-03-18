@@ -1,243 +1,238 @@
-# 🚀 数据中心智能选址与能源优化系统
+# 🚀 Data Center Intelligent Site Selection & Energy Optimization
 
-基于Google Earth Engine (GEE)和AI技术的智能数据中心选址与能源资源评估系统，集成卫星遥感数据、多模态AI分析和多准则决策分析。
+An AI- and Google Earth Engine–powered system for data center siting and energy resource assessment. Combines satellite remote sensing, multimodal AI analysis, and multi-criteria decision methods.
 
-## ✨ 主要功能
+## ✨ Key Features
 
-- 🌍 **卫星图像分析** - 基于GEE的高分辨率卫星图像获取与AI分析
-- ⚡ **能源资源评估** - 太阳能、风能、水能等可再生能源潜力AI评估
-- 🏭 **余热利用分析** - 数据中心余热回收利用潜力分析
-- 🌿 **地理环境分析** - 海拔、河流、森林、气候等地理要素分析
-- 🔋 **供电方案分析** - 多种供电方案的技术经济性AI分析
-- 💾 **储能布局分析** - 储能系统布局优化AI分析
-- 🎯 **智能决策分析** - 基于PROMETHEE-MCGP的多准则决策分析
-- 🤖 **多模态AI分析** - 集成图像、文本、数据的综合AI分析
-- 📊 **可视化地图** - 基于Leaflet的交互式地图展示
+- 🌍 **Satellite imagery analysis** — High-resolution GEE imagery with AI analysis
+- ⚡ **Energy resource assessment** — Solar, wind, and hydro potential
+- 🏭 **Waste-heat utilization analysis** — Data center heat recovery potential
+- 🌿 **Geographic environment analysis** — Elevation, rivers, forests, climate factors
+- 🔋 **Power supply analysis** — Tech/economic evaluation of supply schemes
+- 💾 **Energy storage layout** — Optimized storage system planning
+- 🎯 **Intelligent decision analysis** — PROMETHEE-MCGP multi-criteria scoring
+- 🤖 **Multimodal AI analysis** — Combined image/text/data reasoning
+- 📊 **Interactive map** — Leaflet-based visualization
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-### 后端
-- **FastAPI 0.104.1** - 高性能Web框架
-- **Google Earth Engine** - 卫星遥感数据处理
-- **Python 3.8+** - 核心开发语言
-- **Pydantic 2.5.0** - 数据验证
-- **Uvicorn** - ASGI服务器
-- **OpenCV** - 图像处理
-- **scikit-learn** - 机器学习
-- **NumPy & Pandas** - 数据处理
+### Backend
+- **FastAPI 0.104.1** — high-performance web framework
+- **Google Earth Engine** — satellite data processing
+- **Python 3.8+** — core language
+- **Pydantic 2.5.0** — data validation
+- **Uvicorn** — ASGI server
+- **OpenCV** — image processing
+- **scikit-learn** — machine learning
+- **NumPy & Pandas** — data handling
 
-### 前端
-- **React 18** - 用户界面框架
-- **TypeScript** - 类型安全的JavaScript
-- **Ant Design 5.27.4** - UI组件库
-- **Leaflet** - 地图组件
-- **Recharts** - 数据可视化
+### Frontend
+- **React 18**
+- **TypeScript**
+- **Ant Design 5.27.4**
+- **Leaflet**
+- **Recharts**
 
-## 📋 系统要求
+## 📋 System Requirements
 
-- **Python 3.8+** (推荐3.9+)
-- **Node.js 16+** (推荐18+)
-- **Google Earth Engine账号** (必需)
-- **8GB+ RAM** (推荐)
-- **稳定的网络连接** (访问GEE服务)
-- **支持Windows/Linux/Mac** (WSL也可用)
+- **Python 3.8+** (3.9+ recommended)
+- **Node.js 16+** (18+ recommended)
+- **Google Earth Engine account** (required)
+- **8GB+ RAM** (recommended)
+- **Stable internet** (for GEE)
+- **Windows/Linux/Mac** (WSL supported)
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 方法一：一键启动（推荐）
+### Option 1: One-click (recommended)
 
-**直接双击 `start.bat` 即可！**
+Double-click `start.bat`.
 
-这个批处理文件会自动：
-- 设置代理（如果需要）
-- 构建前端
-- 启动后端服务
-- 显示访问地址
+It will:
+- Set proxy (if configured)
+- Build the frontend
+- Start the backend
+- Show access URLs
 
-### 方法二：完整配置流程
+### Option 2: Full setup
 
-#### 1️⃣ 安装依赖
+#### 1️⃣ Install dependencies
 ```cmd
-# Windows用户 - 双击运行
+# Windows
 install_all.bat
 
-# Linux/Mac用户
+# Linux/Mac
 chmod +x install_all.sh
 ./install_all.sh
 
-# 或手动安装
+# Or manual
 pip install -r requirements.txt
 cd frontend && npm install && npm run build && cd ..
 ```
 
-#### 2️⃣ 配置环境变量
+#### 2️⃣ Configure environment
 ```cmd
-# 复制环境配置文件
 cp env.example .env
-
-# 编辑 .env 文件，填入您的配置：
-# - OPENAI_API_KEY: 您的OpenAI API密钥
-# - GEE_PROJECT_ID: 您的GEE项目ID
-# - 代理设置（如需要）
+# Edit .env:
+# - OPENAI_API_KEY
+# - GEE_PROJECT_ID
+# - proxy settings if needed
 ```
 
-#### 3️⃣ 配置GEE认证（必需）
+#### 3️⃣ GEE authentication (required)
 ```cmd
 python setup_gee_auth.py
 ```
-**重要**：系统必须使用Google Earth Engine数据！
-详细步骤请参考 [GEE_SETUP_GUIDE.md](GEE_SETUP_GUIDE.md)
+The system must use Google Earth Engine data. See [GEE_SETUP_GUIDE.md](GEE_SETUP_GUIDE.md) for details.
 
-#### 4️⃣ 启动系统
+#### 4️⃣ Start the system
 ```cmd
-# 方法1：直接双击
+# Option 1
 start.bat
 
-# 方法2：Python启动
+# Option 2
 python start_system.py
 ```
 
-### 🌐 访问地址
-- **前端界面**: http://localhost:3000
-- **后端API**: http://localhost:8000
-- **API文档**: http://localhost:8000/docs
+### 🌐 Access
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API docs**: http://localhost:8000/docs
 
-## 📖 详细文档
+## 📖 Documentation
 
-- [GEE认证指南](docs/GEE认证指南.md) - 配置Google Earth Engine
-- [API文档](docs/API文档.md) - 后端API接口说明
-- [使用指南](docs/使用指南.md) - 系统使用说明
-- [GEE真实数据配置指南](GEE真实数据配置指南.md) - 真实数据配置
+- [GEE Setup Guide](docs/GEE认证指南.md)
+- [API Docs](docs/API文档.md)
+- [User Guide](docs/使用指南.md)
+- [GEE Real Data Guide](GEE真实数据配置指南.md)
 
-## 🔧 配置说明
+## 🔧 Configuration Notes
 
-### GEE认证配置
-系统必须配置Google Earth Engine认证才能正常运行：
+### GEE auth
+Required steps:
+1. Register a GEE account
+2. Create a Google Cloud project
+3. Enable Earth Engine API
+4. Run the auth script
 
-1. 注册Google Earth Engine账号
-2. 创建Google Cloud项目
-3. 启用Earth Engine API
-4. 运行认证脚本
+See the GEE setup guide above.
 
-详细步骤请参考 [GEE认证指南](docs/GEE认证指南.md)
-
-### 环境变量
-创建 `.env` 文件（可选）：
+### Environment variables
+Create `.env` (optional):
 ```env
 GEE_PROJECT_ID=your-project-id
 DEBUG=False
 ```
 
-## 📊 系统架构
+## 📊 System Structure
 
 ```
-├── backend/                    # 后端服务
-│   ├── main.py                # FastAPI主应用
-│   └── services/              # 业务服务层
-│       ├── satellite_service.py           # 卫星图像服务
-│       ├── image_analysis.py              # 图像分析服务
-│       ├── energy_assessment.py           # 能源资源评估
-│       ├── energy_ai_analysis.py          # 能源AI分析
-│       ├── power_supply_analysis.py       # 供电方案分析
-│       ├── power_supply_ai_analysis.py    # 供电AI分析
-│       ├── energy_storage_analysis.py     # 储能布局分析
-│       ├── energy_storage_ai_analysis.py  # 储能AI分析
-│       ├── decision_analysis.py           # 决策分析
-│       ├── decision_ai_analysis.py        # 决策AI分析
-│       ├── promethee_mcgp_analysis.py     # PROMETHEE决策
-│       ├── multimodal_analysis.py         # 多模态分析
-├── frontend/                  # 前端应用
-│   ├── src/                  # React源码
-│   │   ├── App.tsx           # 主应用
-│   │   └── components/       # 组件
-│   │       ├── MapComponent.tsx      # 地图组件
-│   │       ├── EnergyAssessment.tsx  # 能源评估
-│   │       ├── DecisionAnalysis.tsx  # 决策分析
-│   │       └── AnalysisResults.tsx   # 分析结果
-│   └── build/                # 构建输出
-├── docs/                     # 文档
-├── notebooks/                # Jupyter示例
-└── 启动脚本/                  # 各种启动脚本
-    ├── start.bat            # 一键启动
-    ├── install_all.bat      # 一键安装
-    └── setup_gee_auth.py    # GEE认证
+├── backend/                    # Backend services
+│   ├── main.py                 # FastAPI app
+│   └── services/               # Service layer
+│       ├── satellite_service.py           # Satellite imagery service
+│       ├── image_analysis.py              # Image analysis
+│       ├── energy_assessment.py           # Energy assessment
+│       ├── energy_ai_analysis.py          # Energy AI analysis
+│       ├── power_supply_analysis.py       # Power supply analysis
+│       ├── power_supply_ai_analysis.py    # Power supply AI
+│       ├── energy_storage_analysis.py     # Storage layout analysis
+│       ├── energy_storage_ai_analysis.py  # Storage AI
+│       ├── decision_analysis.py           # Decision analysis
+│       ├── decision_ai_analysis.py        # Decision AI
+│       ├── promethee_mcgp_analysis.py     # PROMETHEE decisioning
+│       ├── multimodal_analysis.py         # Multimodal analysis
+├── frontend/                  # Frontend app
+│   ├── src/                  # React source
+│   │   ├── App.tsx           # Main app
+│   │   └── components/       # Components
+│   │       ├── MapComponent.tsx      # Map
+│   │       ├── EnergyAssessment.tsx  # Energy assessment
+│   │       ├── DecisionAnalysis.tsx  # Decision analysis
+│   │       └── AnalysisResults.tsx   # Results
+│   └── build/                # Build output
+├── docs/                     # Docs
+├── notebooks/                # Jupyter samples
+└── scripts/                  # Startup scripts
+    ├── start.bat             # One-click start
+    ├── install_all.bat       # One-click install
+    └── setup_gee_auth.py     # GEE auth
 ```
 
-## 🌟 核心特性
+## 🌟 Core Capabilities
 
-### 🌍 卫星图像分析
-- 基于Landsat 8/9和Sentinel-2数据
-- 自动云量过滤和图像质量优化
-- 多数据源备选方案
-- 20公里覆盖半径
-- AI图像识别和分析
+### 🌍 Satellite imagery
+- Landsat 8/9 and Sentinel-2
+- Cloud filtering and quality optimization
+- Multiple data-source fallbacks
+- 20 km coverage radius
+- AI image recognition and analysis
 
-### ⚡ 能源资源评估
-- 太阳能辐射量AI计算
-- 风能资源AI评估
-- 水能潜力分析
-- 可再生能源覆盖率计算
-- 多模态数据融合分析
+### ⚡ Energy assessment
+- AI-based solar irradiance estimation
+- AI wind resource assessment
+- Hydropower potential
+- Renewable coverage calculation
+- Multimodal data fusion
 
-### 🔋 供电与储能分析
-- 多种供电方案技术经济性分析
-- 储能系统布局优化
-- AI驱动的成本效益分析
-- 可再生能源集成方案
+### 🔋 Power & storage
+- Tech-economic evaluation of supply schemes
+- Storage system layout optimization
+- AI-driven cost-benefit analysis
+- Renewable integration schemes
 
-### 🎯 智能决策分析
-- PROMETHEE多准则决策方法
-- AI增强的决策支持
-- 经济因素分析
-- 自然因素分析
-- 综合评分排序
+### 🎯 Decision analysis
+- PROMETHEE multi-criteria method
+- AI-enhanced decision support
+- Economic and natural factor evaluation
+- Integrated scoring and ranking
 
-### 🤖 AI功能
-- 多模态AI分析（图像+文本+数据）
-- 智能图像识别
-- 自动化决策支持
-- 预测性分析
+### 🤖 AI features
+- Multimodal AI (image + text + data)
+- Intelligent image recognition
+- Automated decision support
+- Predictive analysis
 
-## 🚨 故障排除
+## 🚨 Troubleshooting
 
-### 常见问题
+### Common issues
 
-1. **GEE认证失败**
+1. **GEE auth failure**
    ```cmd
    python setup_gee_auth.py
    ```
 
-2. **依赖安装失败**
+2. **Dependency install failure**
    ```cmd
    install_all.bat
    ```
 
-3. **网络连接问题**
-   - 检查代理设置
-   - 确保能访问Google服务
+3. **Network problems**
+   - Check proxy settings
+   - Ensure access to Google services
 
-4. **端口占用**
-   - 后端：8000端口
-   - 前端：3000端口
+4. **Port in use**
+   - Backend: 8000
+   - Frontend: 3000
 
-### 系统检查
+### System checks
 ```cmd
-# 检查后端状态
+# Backend status
 python check_backend_status.py
 
-# 检查网络连接
+# Network check
 python check_network.py
 ```
 
-## 📝 更新日志
+## 📝 Changelog
 
-### v1.0.0 (当前版本)
-- ✅ 集成Google Earth Engine
-- ✅ 多模态AI分析
-- ✅ 交互式地图界面
-- ✅ 完整的API文档
-- ✅ 一键启动脚本
+### v1.0.0 (current)
+- ✅ Integrated Google Earth Engine
+- ✅ Multimodal AI analysis
+- ✅ Interactive map UI
+- ✅ Full API docs
+- ✅ One-click start scripts
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交Issue和Pull Request！
+Issues and PRs are welcome!

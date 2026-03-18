@@ -32,14 +32,15 @@ class Config:
         load_env_file()
         
         # API 配置
-        self.OPENAI_API_KEY = get_config('OPENAI_API_KEY', 'sk-abaWwmXxZ2Mtw9GwLHKNI81Mxpsj9RVj5IapLh8mzoP4LfAR')
+        # API key must come from environment; no hardcoded default
+        self.OPENAI_API_KEY = get_config('OPENAI_API_KEY', '')
         self.OPENAI_BASE_URL = get_config('OPENAI_BASE_URL', 'https://api.gptplus5.com/v1')
         
         # 代理配置
-        self.HTTP_PROXY = get_config('HTTP_PROXY', 'http://127.0.0.1:7897')
-        self.HTTPS_PROXY = get_config('HTTPS_PROXY', 'http://127.0.0.1:7897')
-        self.http_proxy = get_config('http_proxy', 'http://127.0.0.1:7897')
-        self.https_proxy = get_config('https_proxy', 'http://127.0.0.1:7897')
+        self.HTTP_PROXY = get_config('HTTP_PROXY', 'http://127.0.0.1:1082')
+        self.HTTPS_PROXY = get_config('HTTPS_PROXY', 'http://127.0.0.1:1082')
+        self.http_proxy = get_config('http_proxy', 'http://127.0.0.1:1082')
+        self.https_proxy = get_config('https_proxy', 'http://127.0.0.1:1082')
         
         # GEE 配置
         self.GEE_PROJECT_ID = get_config('GEE_PROJECT_ID', 'data-center-location-analysis')

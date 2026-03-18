@@ -1,5 +1,5 @@
 """
-储能布局AI分析服务 - 使用OpenAI官方库进行智能储能布局分析
+Energy storage layout AI analysis service - intelligent storage layout analysis using the OpenAI SDK
 """
 
 import asyncio
@@ -9,55 +9,52 @@ from openai import OpenAI
 import os
 
 class EnergyStorageAIAnalysisService:
-    """储能布局AI分析服务类"""
+    """Energy storage layout AI analysis service class"""
     
     def __init__(self):
-        """初始化储能布局AI分析服务"""
-        # 设置代理
-        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
-        
+        """Initialize energy storage layout AI analysis service"""
+        # Configure proxy        
         self.client = OpenAI(
-            base_url='https://api.gptplus5.com/v1',
-            api_key=os.environ.get('OPENAI_API_KEY', 'sk-abaWwmXxZ2Mtw9GwLHKNI81Mxpsj9RVj5IapLh8mzoP4LfAR')
+            base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+            api_key = os.environ.get('OPENAI_API_KEY')
         )
         self.model = "gpt-4o-2024-08-06"
         
-        # 储能布局分析专用prompt模板
+        # Energy storage layout analysis prompt template
         self.storage_prompt = """
-请分析这张卫星图像，评估数据中心储能系统布局优化：
+Analyze this satellite image and evaluate energy storage system layout optimization for a data center:
 
-1. **储能技术选择**
-   - 评估锂离子电池布局适宜性
-   - 分析抽水蓄能可行性
-   - 评估压缩空气储能条件
-   - 分析液流电池布局空间
+1. **Storage technology selection**
+   - Assess suitability of lithium-ion battery layout
+   - Analyze feasibility of pumped hydro storage
+   - Evaluate conditions for compressed air energy storage
+   - Analyze available space for flow battery layout
 
-2. **储能容量规划**
-   - 分析储能容量需求
-   - 评估储能系统规模
-   - 识别储能设备安装区域
-   - 评估储能系统效率
+2. **Storage capacity planning**
+   - Analyze storage capacity requirements
+   - Evaluate energy storage system scale
+   - Identify installation areas for storage equipment
+   - Assess energy storage system efficiency
 
-3. **储能布局优化**
-   - 识别最佳储能设备位置
-   - 分析储能系统间距要求
-   - 评估储能设备维护便利性
-   - 分析储能系统安全性
+3. **Storage layout optimization**
+   - Identify optimal locations for storage equipment
+   - Analyze spacing requirements for storage systems
+   - Evaluate maintenance accessibility of storage equipment
+   - Analyze safety of storage systems
 
-4. **储能经济性分析**
-   - 评估储能系统投资成本
-   - 分析储能系统运营成本
-   - 评估储能系统经济效益
-   - 提供储能投资建议
+4. **Storage economic analysis**
+   - Evaluate capital cost of storage systems
+   - Analyze operating cost of storage systems
+   - Assess economic benefits of storage systems
+   - Provide storage investment recommendations
 
-5. **储能系统集成**
-   - 分析储能与电网集成方案
-   - 评估储能与可再生能源集成
-   - 分析储能系统控制策略
-   - 提供储能系统优化建议
+5. **Storage system integration**
+   - Analyze grid integration plan for storage systems
+   - Evaluate integration of storage with renewable energy
+   - Analyze control strategies for storage systems
+   - Provide storage system optimization recommendations
 
-请提供详细的分析结果和具体建议，使用中文回答。
+Please provide detailed analysis results and specific recommendations in English.
 """
     
     async def analyze_storage_layout_ai(self, satellite_data: Dict[str, Any], 
@@ -65,27 +62,27 @@ class EnergyStorageAIAnalysisService:
                                       renewable_ratio: float = 0.7,
                                       custom_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
-        使用AI分析储能布局
+        Analyze energy storage layout using AI
         
         Args:
-            satellite_data: 卫星数据
-            power_demand: 电力需求（MW）
-            renewable_ratio: 可再生能源比例
-            custom_prompt: 自定义分析提示词
+            satellite_data: Satellite data
+            power_demand: Power demand (MW)
+            renewable_ratio: Renewable energy ratio
+            custom_prompt: Custom analysis prompt
             
         Returns:
-            AI储能布局分析结果
+            AI energy storage layout analysis result
         """
         try:
             image_url = satellite_data.get("url") or satellite_data.get("image_url", "")
             if not image_url:
                 return {
                     "success": False,
-                    "error": "无法获取卫星图像URL",
+                    "error": "Unable to retrieve satellite image URL",
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # 获取地理元数据
+            # Retrieve geographic metadata
             metadata = satellite_data.get("metadata", {})
             location_info = {
                 "center": metadata.get("center", []),
@@ -94,16 +91,16 @@ class EnergyStorageAIAnalysisService:
                 "resolution": metadata.get("resolution", "Unknown")
             }
             
-            # 构建增强的储能分析prompt
+            # Build enhanced storage analysis prompt
             enhanced_prompt = self._build_storage_prompt(
                 location_info, power_demand, renewable_ratio, custom_prompt
             )
             
-            # 调用AI分析
+            # Call AI analysis
             ai_result = await self._call_ai_analysis(image_url, enhanced_prompt)
             
             if ai_result["success"]:
-                ai_result["analysis_type"] = "AI储能布局分析"
+                ai_result["analysis_type"] = "AI energy storage layout analysis"
                 ai_result["location_info"] = location_info
                 ai_result["power_demand"] = power_demand
                 ai_result["renewable_ratio"] = renewable_ratio
@@ -114,7 +111,7 @@ class EnergyStorageAIAnalysisService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI储能布局分析失败: {str(e)}",
+                "error": f"AI energy storage layout analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
@@ -122,31 +119,31 @@ class EnergyStorageAIAnalysisService:
                             power_demand: float,
                             renewable_ratio: float,
                             custom_prompt: Optional[str] = None) -> str:
-        """构建储能布局分析专用prompt"""
+        """Build energy storage layout analysis prompt"""
         if custom_prompt:
             base_prompt = custom_prompt
         else:
             base_prompt = self.storage_prompt
         
-        # 添加地理位置和储能需求信息
+        # Add geographic location and storage requirement info
         context = f"""
-地理位置和储能需求信息：
-- 坐标: {location_info.get('center', [])}
-- 分析半径: {location_info.get('radius', 0)}米
-- 数据源: {location_info.get('data_source', 'Unknown')}
-- 分辨率: {location_info.get('resolution', 'Unknown')}
-- 电力需求: {power_demand}MW
-- 可再生能源比例: {renewable_ratio*100}%
+Geographic location and storage requirement info:
+- Coordinates: {location_info.get('center', [])}
+- Analysis radius: {location_info.get('radius', 0)} meters
+- Data source: {location_info.get('data_source', 'Unknown')}
+- Resolution: {location_info.get('resolution', 'Unknown')}
+- Power demand: {power_demand} MW
+- Renewable energy ratio: {renewable_ratio*100}%
 
-请结合这些信息，对储能布局进行更准确的分析。
+Please use this information for a more accurate storage layout analysis.
 """
         
         return base_prompt + "\n\n" + context
     
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
-        """调用AI分析API"""
+        """Call AI analysis API"""
         try:
-            # 使用OpenAI官方库进行API调用
+            # Call API using the official OpenAI SDK
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -158,7 +155,7 @@ class EnergyStorageAIAnalysisService:
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_url,
-                                    "detail": "high"  # 使用low减少上下文长度
+                                    "detail": "high"
                                 }
                             }
                         ]
@@ -166,7 +163,7 @@ class EnergyStorageAIAnalysisService:
                 ],
                 max_tokens=8000,
                 temperature=0.3,
-                timeout=180  # 2分钟超时
+                timeout=180  # 3 minute timeout
             )
             
             analysis_text = response.choices[0].message.content
@@ -177,12 +174,12 @@ class EnergyStorageAIAnalysisService:
                 "model": self.model,
                 "timestamp": datetime.now().isoformat(),
                 "image_url": image_url,
-                "api_provider": "GPTPlus5"
+                "api_provider": "OpenAI"
             }
                 
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI分析调用失败: {str(e)}",
+                "error": f"AI analysis call failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
