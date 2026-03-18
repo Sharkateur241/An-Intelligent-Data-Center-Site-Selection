@@ -1,28 +1,32 @@
-# 数据中心智能选址与能源优化系统
+# Data Center Intelligent Site Selection and Energy Optimization System
 
-基于Google Earth Engine卫星图像和AI的数据中心选址分析系统，集成了PROMETHEE-MCGP决策方法。
+A data center site selection system based on Google Earth Engine satellite imagery and AI, integrated with the PROMETHEE-MCGP decision-making method.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Requirements
+
 - Python 3.8+
 - Node.js 16+
-- **Google Earth Engine账号（必需）**
+- **Google Earth Engine account (required)**
 
-### 安装步骤
+### Installation Steps
 
-1. **克隆仓库**
+1. **Clone the repository**
+
 ```bash
 git clone https://github.com/yourusername/data-center-location-analysis.git
 cd data-center-location-analysis
 ```
 
-2. **安装Python依赖**
+2. **Install Python dependencies**
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **安装前端依赖**
+3. **Install frontend dependencies**
+
 ```bash
 cd frontend
 npm install
@@ -30,73 +34,81 @@ npm run build
 cd ..
 ```
 
-4. **配置GEE（必需）**
+4. **Configure GEE (required)**
+
 ```bash
 python setup_gee_auth.py
 ```
 
-5. **启动系统**
+5. **Start the system**
+
 ```bash
 python start_system.py
 ```
 
-6. **访问系统**
-- 前端: http://localhost:3000
-- 后端API: http://localhost:8000
-- API文档: http://localhost:8000/docs
+6. **Access the system**
 
-## 📊 功能特性
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
-- 🌍 **GEE卫星图像分析** - 基于Google Earth Engine高分辨率卫星数据
-- 🏗️ **土地利用分析** - 智能空地识别和土地适宜性评估
-- ⚡ **供电方案分析** - 太阳能、风能、水电等可再生能源评估
-- 🔋 **储能布局分析** - 多种储能技术方案优化
-- 🔥 **余热利用方案** - 北方供热、南方工业用热
-- 📈 **PROMETHEE-MCGP决策** - 科学的多准则决策分析
+## 📊 Features
 
-## 🔧 配置说明
+- 🌍 **GEE Satellite Image Analysis** - Based on high-resolution satellite data from Google Earth Engine
+- 🏗️ **Land Use Analysis** - Intelligent vacant land identification and land suitability assessment
+- ⚡ **Power Supply Analysis** - Evaluation of renewable energy sources including solar, wind, and hydropower
+- 🔋 **Energy Storage Layout Analysis** - Optimization of multiple energy storage technology solutions
+- 🔥 **Waste Heat Utilization** - Northern district heating and southern industrial heat applications
+- 📈 **PROMETHEE-MCGP Decision Making** - Scientific multi-criteria decision analysis
 
-### GEE配置（必需）
-⚠️ **重要：本系统必须使用GEE数据！**
+## 🔧 Configuration
 
-1. 访问 https://earthengine.google.com/
-2. 注册Google账号并申请GEE访问权限
-3. 创建Google Cloud项目
-4. 启用Earth Engine API
-5. 运行 `python setup_gee_auth.py` 完成认证
+### GEE Configuration (required)
 
-### 环境变量
-创建 `.env` 文件（可选）：
+⚠️ **Important: This system must use GEE data!**
+
+1. Visit https://earthengine.google.com/
+2. Register a Google account and apply for GEE access
+3. Create a Google Cloud project
+4. Enable the Earth Engine API
+5. Run `python setup_gee_auth.py` to complete authentication
+
+### Environment Variables
+
+Create a `.env` file (optional):
+
 ```
 GEE_PROJECT_ID=your-project-id
 GEE_SERVICE_ACCOUNT=your-service-account
 ```
 
-## 📚 使用指南
+## 📚 User Guide
 
-1. 输入经纬度坐标或选择城市
-2. 系统自动分析：
-   - 土地利用情况
-   - 能源资源评估
-   - 供电方案建议
-   - 储能布局分析
-   - 余热利用方案
-   - 综合决策评分
+1. Enter latitude/longitude coordinates or select a city
+2. The system automatically analyzes:
+   - Land use conditions
+   - Energy resource assessment
+   - Power supply recommendations
+   - Energy storage layout analysis
+   - Waste heat utilization options
+   - Comprehensive decision score
 
-## 🛠️ 开发说明
+## 🛠️ Development Notes
 
-### 项目结构
+### Project Structure
+
 ```
-├── backend/                 # 后端API服务
-│   ├── services/           # 分析服务模块
-│   └── main.py            # FastAPI应用
-├── frontend/              # 前端React应用
-│   ├── src/               # 源代码
-│   └── build/             # 构建文件
-└── docs/                  # 文档
+├── backend/                 # Backend API service
+│   ├── services/           # Analysis service modules
+│   └── main.py            # FastAPI application
+├── frontend/              # Frontend React application
+│   ├── src/               # Source code
+│   └── build/             # Build files
+└── docs/                  # Documentation
 ```
 
-### API接口
-- `POST /analyze/location` - 位置分析
-- `POST /analyze/cities` - 城市对比分析
-- `GET /satellite/image/{lat}/{lon}` - 获取卫星图像
+### API Endpoints
+
+- `POST /analyze/location` - Location analysis
+- `POST /analyze/cities` - City comparison analysis
+- `GET /satellite/image/{lat}/{lon}` - Retrieve satellite image

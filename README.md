@@ -17,6 +17,7 @@ An AI- and Google Earth Engine–powered system for data center siting and energ
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - **FastAPI 0.104.1** — high-performance web framework
 - **Google Earth Engine** — satellite data processing
 - **Python 3.8+** — core language
@@ -27,6 +28,7 @@ An AI- and Google Earth Engine–powered system for data center siting and energ
 - **NumPy & Pandas** — data handling
 
 ### Frontend
+
 - **React 18**
 - **TypeScript**
 - **Ant Design 5.27.4**
@@ -49,6 +51,7 @@ An AI- and Google Earth Engine–powered system for data center siting and energ
 Double-click `start.bat`.
 
 It will:
+
 - Set proxy (if configured)
 - Build the frontend
 - Start the backend
@@ -57,6 +60,7 @@ It will:
 ### Option 2: Full setup
 
 #### 1️⃣ Install dependencies
+
 ```cmd
 # Windows
 install_all.bat
@@ -71,6 +75,7 @@ cd frontend && npm install && npm run build && cd ..
 ```
 
 #### 2️⃣ Configure environment
+
 ```cmd
 cp env.example .env
 # Edit .env:
@@ -80,12 +85,15 @@ cp env.example .env
 ```
 
 #### 3️⃣ GEE authentication (required)
+
 ```cmd
 python setup_gee_auth.py
 ```
+
 The system must use Google Earth Engine data. See [GEE_SETUP_GUIDE.md](GEE_SETUP_GUIDE.md) for details.
 
 #### 4️⃣ Start the system
+
 ```cmd
 # Option 1
 start.bat
@@ -95,21 +103,24 @@ python start_system.py
 ```
 
 ### 🌐 Access
+
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API docs**: http://localhost:8000/docs
 
 ## 📖 Documentation
 
-- [GEE Setup Guide](docs/GEE认证指南.md)
-- [API Docs](docs/API文档.md)
-- [User Guide](docs/使用指南.md)
-- [GEE Real Data Guide](GEE真实数据配置指南.md)
+- [GEE Setup Guide](docs/GEE-Authentication-Guide.md)
+- [API Docs](docs/API-Documentation.md)
+- [User Guide](docs/User-Guide.md)
+- [GEE Real Data Guide](GEE-Real-Data-Configuration-Guide.md)
 
 ## 🔧 Configuration Notes
 
 ### GEE auth
+
 Required steps:
+
 1. Register a GEE account
 2. Create a Google Cloud project
 3. Enable Earth Engine API
@@ -118,7 +129,9 @@ Required steps:
 See the GEE setup guide above.
 
 ### Environment variables
+
 Create `.env` (optional):
+
 ```env
 GEE_PROJECT_ID=your-project-id
 DEBUG=False
@@ -162,6 +175,7 @@ DEBUG=False
 ## 🌟 Core Capabilities
 
 ### 🌍 Satellite imagery
+
 - Landsat 8/9 and Sentinel-2
 - Cloud filtering and quality optimization
 - Multiple data-source fallbacks
@@ -169,6 +183,7 @@ DEBUG=False
 - AI image recognition and analysis
 
 ### ⚡ Energy assessment
+
 - AI-based solar irradiance estimation
 - AI wind resource assessment
 - Hydropower potential
@@ -176,18 +191,21 @@ DEBUG=False
 - Multimodal data fusion
 
 ### 🔋 Power & storage
+
 - Tech-economic evaluation of supply schemes
 - Storage system layout optimization
 - AI-driven cost-benefit analysis
 - Renewable integration schemes
 
 ### 🎯 Decision analysis
+
 - PROMETHEE multi-criteria method
 - AI-enhanced decision support
 - Economic and natural factor evaluation
 - Integrated scoring and ranking
 
 ### 🤖 AI features
+
 - Multimodal AI (image + text + data)
 - Intelligent image recognition
 - Automated decision support
@@ -198,11 +216,13 @@ DEBUG=False
 ### Common issues
 
 1. **GEE auth failure**
+
    ```cmd
    python setup_gee_auth.py
    ```
 
 2. **Dependency install failure**
+
    ```cmd
    install_all.bat
    ```
@@ -216,6 +236,7 @@ DEBUG=False
    - Frontend: 3000
 
 ### System checks
+
 ```cmd
 # Backend status
 python check_backend_status.py
@@ -227,6 +248,7 @@ python check_network.py
 ## 📝 Changelog
 
 ### v1.0.0 (current)
+
 - ✅ Integrated Google Earth Engine
 - ✅ Multimodal AI analysis
 - ✅ Interactive map UI

@@ -1,33 +1,33 @@
-# 核心依赖
+# Core dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 python-multipart==0.0.6
 
-# 数据处理
+# Data processing
 numpy==1.24.3
 pandas==2.0.3
 scipy==1.11.4
 
-# 机器学习
+# Machine learning
 scikit-learn==1.3.2
 opencv-python==4.8.1.78
 
-# 地理空间分析
+# Geospatial analysis
 earthengine-api==0.1.375
 geopandas==0.14.0
 shapely==2.0.2
 
-# 图像处理
+# Image processing
 Pillow==10.1.0
 matplotlib==3.7.2
 seaborn==0.12.2
 
-# HTTP请求
+# HTTP requests
 requests==2.31.0
 httpx==0.25.2
 aiohttp==3.9.1
 
-# 工具库
+# Utility libraries
 python-dotenv==1.0.0
 typing-extensions==4.8.0

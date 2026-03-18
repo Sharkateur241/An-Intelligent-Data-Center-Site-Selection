@@ -1,68 +1,71 @@
-# Google Earth Engine 认证设置指南
+# Google Earth Engine Authentication Setup Guide
 
-## 📋 概述
+## 📋 Overview
 
-本项目使用 Google Earth Engine (GEE) 获取卫星图像和地理数据。要使用此功能，您需要设置 GEE 认证。
+This project uses Google Earth Engine (GEE) to retrieve satellite imagery and geographic data. To use this feature, you need to set up GEE authentication.
 
-## 🔑 获取 GEE 认证
+## 🔑 Getting GEE Authentication
 
-### 方法1：使用个人 Google 账户（推荐用于开发）
+### Method 1: Using a Personal Google Account (Recommended for Development)
 
-1. **访问 GEE 网站**
-   - 打开 https://earthengine.google.com/
-   - 使用您的 Google 账户登录
+1. **Visit the GEE website**
+   - Open https://earthengine.google.com/
+   - Sign in with your Google account
 
-2. **注册 GEE 账户**
-   - 点击 "Sign up for Earth Engine"
-   - 填写注册表单
-   - 等待审核通过（通常需要1-2天）
+2. **Register for a GEE account**
+   - Click "Sign up for Earth Engine"
+   - Fill out the registration form
+   - Wait for approval (usually takes 1-2 days)
 
-3. **获取项目ID**
-   - 在 GEE 控制台中创建新项目
-   - 记录项目ID（如：`your-project-name`）
+3. **Get your Project ID**
+   - Create a new project in the GEE console
+   - Record the project ID (e.g.: `your-project-name`)
 
-### 方法2：使用服务账号（推荐用于生产）
+### Method 2: Using a Service Account (Recommended for Production)
 
-1. **创建 Google Cloud 项目**
-   - 访问 https://console.cloud.google.com/
-   - 创建新项目或选择现有项目
+1. **Create a Google Cloud Project**
+   - Visit https://console.cloud.google.com/
+   - Create a new project or select an existing one
 
-2. **启用 Earth Engine API**
-   - 在 Google Cloud Console 中
-   - 转到 "APIs & Services" > "Library"
-   - 搜索 "Earth Engine API" 并启用
+2. **Enable the Earth Engine API**
+   - In Google Cloud Console
+   - Go to "APIs & Services" > "Library"
+   - Search for "Earth Engine API" and enable it
 
-3. **创建服务账号**
-   - 转到 "IAM & Admin" > "Service Accounts"
-   - 点击 "Create Service Account"
-   - 填写服务账号信息
+3. **Create a Service Account**
+   - Go to "IAM & Admin" > "Service Accounts"
+   - Click "Create Service Account"
+   - Fill in the service account details
 
-4. **生成密钥文件**
-   - 在服务账号列表中，点击刚创建的服务账号
-   - 转到 "Keys" 标签
-   - 点击 "Add Key" > "Create new key"
-   - 选择 "JSON" 格式
-   - 下载密钥文件
+4. **Generate a Key File**
+   - In the service account list, click the service account you just created
+   - Go to the "Keys" tab
+   - Click "Add Key" > "Create new key"
+   - Select "JSON" format
+   - Download the key file
 
-5. **将密钥文件添加到项目**
-   - 将下载的 JSON 文件重命名为 `gee_service_account_key.json`
-   - 将文件放在项目根目录
+5. **Add the Key File to the Project**
+   - Rename the downloaded JSON file to `gee_service_account_key.json`
+   - Place the file in the project root directory
 
-## ⚙️ 配置项目
+## ⚙️ Project Configuration
 
-### 1. 复制环境配置文件
+### 1. Copy the environment configuration file
+
 ```bash
 cp env.example .env
 ```
 
-### 2. 编辑 .env 文件
+### 2. Edit the .env file
+
 ```env
-# GEE 配置
+# GEE Configuration
 GEE_PROJECT_ID=your_gee_project_id
 GEE_SERVICE_ACCOUNT_KEY_PATH=./gee_service_account_key.json
 ```
 
-### 3. 设置环境变量（可选）
+### 3. Set environment variables (optional)
+
 ```bash
 # Windows
 set GEE_PROJECT_ID=your_gee_project_id
@@ -73,61 +76,67 @@ export GEE_PROJECT_ID=your_gee_project_id
 export GOOGLE_APPLICATION_CREDENTIALS=./gee_service_account_key.json
 ```
 
-## 🧪 测试 GEE 连接
+## 🧪 Testing the GEE Connection
 
-运行以下命令测试 GEE 连接：
+Run the following command to test the GEE connection:
 
 ```bash
 python setup_gee_auth.py
 ```
 
-如果看到 "GEE 认证成功" 消息，说明配置正确。
+If you see the "GEE authentication successful" message, the configuration is correct.
 
-## ❗ 注意事项
+## ❗ Important Notes
 
-1. **不要将密钥文件提交到 Git**
-   - 确保 `gee_service_account_key.json` 在 `.gitignore` 中
-   - 使用 `env.example` 作为模板
+1. **Do not commit the key file to Git**
+   - Make sure `gee_service_account_key.json` is listed in `.gitignore`
+   - Use `env.example` as a template
 
-2. **权限管理**
-   - 服务账号需要 Earth Engine 用户权限
-   - 联系 GEE 团队添加服务账号权限
+2. **Permission Management**
+   - The service account requires Earth Engine user permissions
+   - Contact the GEE team to add service account permissions
 
-3. **配额限制**
-   - GEE 有使用配额限制
-   - 超出限制可能导致请求失败
+3. **Quota Limits**
+   - GEE has usage quota limits
+   - Exceeding the limit may cause requests to fail
 
-## 🔧 故障排除
+## 🔧 Troubleshooting
 
-### 常见错误
+### Common Errors
 
-1. **认证失败**
-   ```
+1. **Authentication Failed**
+
+```
    Error: The caller does not have permission
-   ```
-   - 检查服务账号是否有 GEE 权限
-   - 确认项目ID正确
+```
 
-2. **API 未启用**
-   ```
+- Check if the service account has GEE permissions
+- Confirm the project ID is correct
+
+2. **API Not Enabled**
+
+```
    Error: Earth Engine API has not been used
-   ```
-   - 在 Google Cloud Console 中启用 Earth Engine API
+```
 
-3. **配额超限**
-   ```
+- Enable the Earth Engine API in Google Cloud Console
+
+3. **Quota Exceeded**
+
+```
    Error: Quota exceeded
-   ```
-   - 等待配额重置或申请增加配额
+```
 
-### 获取帮助
+- Wait for quota reset or apply for a quota increase
 
-- [GEE 官方文档](https://developers.google.com/earth-engine)
-- [GEE 社区论坛](https://groups.google.com/forum/#!forum/google-earth-engine-developers)
-- [项目 Issues](https://github.com/your-repo/issues)
+### Getting Help
 
-## 📝 更新日志
+- [GEE Official Documentation](https://developers.google.com/earth-engine)
+- [GEE Community Forum](https://groups.google.com/forum/#!forum/google-earth-engine-developers)
+- [Project Issues](https://github.com/your-repo/issues)
 
-- 2025-10-12: 初始版本
-- 添加了个人账户和服务账号两种认证方式
-- 提供了详细的配置步骤和故障排除指南
+## 📝 Changelog
+
+- 2025-10-12: Initial version
+- Added both personal account and service account authentication methods
+- Provided detailed configuration steps and troubleshooting guide

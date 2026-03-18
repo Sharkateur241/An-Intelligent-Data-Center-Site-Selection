@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-安装项目依赖包
+Install project dependency packages
 """
 
 import subprocess
@@ -8,101 +8,99 @@ import sys
 import os
 
 def install_package(package):
-    """安装单个包"""
+    """Install a single package"""
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        print(f"✅ {package} 安装成功")
+        print(f"✅ {package} installed successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ {package} 安装失败: {e}")
+        print(f"❌ {package} installation failed: {e}")
         return False
 
 def main():
-    """主函数"""
+    """Main function"""
     print("=" * 60)
-    print("🚀 数据中心智能选址系统 - 依赖安装")
+    print("🚀 Data Center Intelligent Site Selection System - Dependency Installation")
     print("=" * 60)
     print()
     
-    # 依赖包列表
+    # Dependency package list
     packages = [
-        # 核心依赖
+        # Core dependencies
         "fastapi==0.104.1",
         "uvicorn[standard]==0.24.0", 
         "pydantic==2.5.0",
         "python-multipart==0.0.6",
         
-        # 数据处理
+        # Data processing
         "numpy==1.24.3",
         "pandas==2.0.3",
         "scipy==1.11.4",
         
-        # 机器学习
+        # Machine learning
         "scikit-learn==1.3.2",
         "opencv-python==4.8.1.78",
         
-        # 深度学习
+        # Deep learning
         "torch==2.0.1",
         "torchvision==0.15.2",
         
-        # 地理空间分析
+        # Geospatial analysis
         "earthengine-api==0.1.375",
         "geopandas==0.14.0",
         "shapely==2.0.2",
         
-        # 图像处理
+        # Image processing
         "Pillow==10.1.0",
         "matplotlib==3.7.2",
         "seaborn==0.12.2",
         
-        # HTTP请求
+        # HTTP requests
         "requests==2.31.0",
         "httpx==0.25.2",
         "aiohttp==3.9.1",
         
-        # AI分析
+        # AI analysis
         "openai==1.3.0",
         
-        # 工具库
+        # Utility libraries
         "python-dotenv==1.0.0",
         "typing-extensions==4.8.0"
     ]
     
-    print(f"📦 准备安装 {len(packages)} 个依赖包...")
+    print(f"📦 Preparing to install {len(packages)} dependency packages...")
     print()
     
     success_count = 0
     failed_packages = []
     
     for i, package in enumerate(packages, 1):
-        print(f"[{i}/{len(packages)}] 正在安装 {package}...")
+        print(f"[{i}/{len(packages)}] Installing {package}...")
         if install_package(package):
             success_count += 1
         else:
             failed_packages.append(package)
         print()
     
-    # 输出结果
+    # Output results
     print("=" * 60)
-    print("📊 安装结果")
+    print("📊 Installation Results")
     print("=" * 60)
-    print(f"✅ 成功安装: {success_count}/{len(packages)} 个包")
+    print(f"✅ Successfully installed: {success_count}/{len(packages)} packages")
     
     if failed_packages:
-        print(f"❌ 安装失败: {len(failed_packages)} 个包")
-        print("失败的包:")
+        print(f"❌ Installation failed: {len(failed_packages)} packages")
+        print("Failed packages:")
         for package in failed_packages:
             print(f"  - {package}")
     else:
-        print("🎉 所有依赖包安装成功！")
+        print("🎉 All dependency packages installed successfully!")
     
     print()
-    print("🚀 现在可以启动系统了：")
-    print("1. 双击 start.bat")
-    print("2. 或运行 python start_system.py")
+    print("🚀 You can now start the system:")
+    print("1. Double-click start.bat")
+    print("2. Or run python start_system.py")
     print()
 
 if __name__ == "__main__":
     main()
-
-

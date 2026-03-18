@@ -1,51 +1,51 @@
 @echo off
 chcp 65001
 echo ========================================
-echo 安装数据中心选址系统所有依赖包
+echo Install All Dependencies for Data Center Site Selection System
 echo ========================================
 echo.
 
-echo 🔄 正在安装AI分析依赖包...
+echo 🔄 Installing AI analysis dependency packages...
 echo.
 
-echo 1/8 安装PyTorch (CPU版本)...
+echo 1/8 Installing PyTorch (CPU version)...
 .\.venv\Scripts\python.exe -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 echo.
-echo 2/8 安装OpenCV...
+echo 2/8 Installing OpenCV...
 .\.venv\Scripts\python.exe -m pip install opencv-python
 
 echo.
-echo 3/8 安装图像处理库...
+echo 3/8 Installing image processing libraries...
 .\.venv\Scripts\python.exe -m pip install pillow numpy
 
 echo.
-echo 4/8 安装科学计算库...
+echo 4/8 Installing scientific computing libraries...
 .\.venv\Scripts\python.exe -m pip install scipy scikit-learn
 
 echo.
-echo 5/8 安装数据处理库...
+echo 5/8 Installing data processing libraries...
 .\.venv\Scripts\python.exe -m pip install pandas matplotlib seaborn
 
 echo.
-echo 6/8 安装异步HTTP库...
+echo 6/8 Installing async HTTP library...
 .\.venv\Scripts\python.exe -m pip install aiohttp
 
 echo.
-echo 7/8 安装Google Earth Engine...
+echo 7/8 Installing Google Earth Engine...
 .\.venv\Scripts\python.exe -m pip install earthengine-api
 
 echo.
-echo 8/8 安装OpenAI库...
+echo 8/8 Installing OpenAI library...
 .\.venv\Scripts\python.exe -m pip install openai
 
 echo.
 echo ========================================
-echo ✅ 所有依赖包安装完成！
+echo ✅ All dependency packages installed successfully!
 echo ========================================
 echo.
-echo 现在可以运行系统了：
-echo 1. 双击 start.bat 启动系统
-echo 2. 或双击 test_analysis.bat 测试分析流程
+echo You can now run the system:
+echo 1. Double-click start.bat to start the system
+echo 2. Or double-click test_analysis.bat to test the analysis workflow
 echo.
 pause

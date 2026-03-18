@@ -1,15 +1,15 @@
 @echo off
 chcp 65001
-echo 安装AI分析所需的依赖包...
+echo Installing dependency packages required for AI analysis...
 echo.
 
-echo 安装PyTorch...
+echo Installing PyTorch...
 .\.venv\Scripts\python.exe -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 echo.
-echo 安装其他AI依赖...
+echo Installing other AI dependencies...
 .\.venv\Scripts\python.exe -m pip install opencv-python pillow numpy
 
 echo.
-echo 安装完成！
+echo Installation complete!
 pause

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Python启动脚本 - 避免PowerShell问题
+Python startup script - avoid PowerShell issues
 """
 import os
 import subprocess
@@ -8,82 +8,82 @@ import sys
 import time
 
 def main():
-    print("🚀 启动数据中心智能选址系统...")
+    print("🚀 Starting Data Center Intelligent Site Selection System...")
     
-    # 设置代理环境变量
+    # Set proxy environment variables
     os.environ['HTTP_PROXY'] = 'http://127.0.0.1:1082'
     os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:1082'
     
-    print("📋 设置代理环境变量...")
+    print("📋 Setting proxy environment variables...")
     print(f"HTTP_PROXY: {os.environ.get('HTTP_PROXY')}")
     print(f"HTTPS_PROXY: {os.environ.get('HTTPS_PROXY')}")
     
-    print("\n选择启动模式:")
-    print("1. 基础AI分析模式")
-    print("2. 高级AI分析模式")
-    print("3. 仅后端API")
+    print("\nSelect startup mode:")
+    print("1. Basic AI analysis mode")
+    print("2. Advanced AI analysis mode")
+    print("3. Backend API only")
     
-    choice = input("请输入选择 (1-3): ").strip()
+    choice = input("Please enter your choice (1-3): ").strip()
     
     if choice == "1":
-        print("🔧 启动基础AI分析模式...")
-        # 复制前端文件
+        print("🔧 Starting Basic AI analysis mode...")
+        # Copy frontend files
         try:
             import shutil
             shutil.copy("frontend/src/App_simple.tsx", "frontend/src/App.tsx")
-            print("✅ 前端文件配置完成")
+            print("✅ Frontend file configuration complete")
         except Exception as e:
-            print(f"⚠️ 前端文件配置失败: {e}")
+            print(f"⚠️ Frontend file configuration failed: {e}")
         
-        # 构建前端
-        print("🔨 构建前端...")
+        # Build frontend
+        print("🔨 Building frontend...")
         try:
             subprocess.run(["npm", "run", "build"], cwd="frontend", check=True)
-            print("✅ 前端构建完成")
+            print("✅ Frontend build complete")
         except Exception as e:
-            print(f"⚠️ 前端构建失败: {e}")
+            print(f"⚠️ Frontend build failed: {e}")
         
-        # 启动后端
-        print("🚀 启动后端服务...")
+        # Start backend
+        print("🚀 Starting backend service...")
         subprocess.Popen([sys.executable, "start_system.py"])
         
     elif choice == "2":
-        print("🔧 启动高级AI分析模式...")
-        # 复制前端文件
+        print("🔧 Starting Advanced AI analysis mode...")
+        # Copy frontend files
         try:
             import shutil
             shutil.copy("frontend/src/App_advanced.tsx", "frontend/src/App.tsx")
-            print("✅ 前端文件配置完成")
+            print("✅ Frontend file configuration complete")
         except Exception as e:
-            print(f"⚠️ 前端文件配置失败: {e}")
+            print(f"⚠️ Frontend file configuration failed: {e}")
         
-        # 构建前端
-        print("🔨 构建前端...")
+        # Build frontend
+        print("🔨 Building frontend...")
         try:
             subprocess.run(["npm", "run", "build"], cwd="frontend", check=True)
-            print("✅ 前端构建完成")
+            print("✅ Frontend build complete")
         except Exception as e:
-            print(f"⚠️ 前端构建失败: {e}")
+            print(f"⚠️ Frontend build failed: {e}")
         
-        # 启动后端
-        print("🚀 启动后端服务...")
+        # Start backend
+        print("🚀 Starting backend service...")
         subprocess.Popen([sys.executable, "start_system.py"])
         
     elif choice == "3":
-        print("🔧 启动仅后端API模式...")
+        print("🔧 Starting Backend API only mode...")
         subprocess.Popen([sys.executable, "start_system.py"])
         
     else:
-        print("❌ 无效选择，启动默认模式...")
+        print("❌ Invalid choice, starting default mode...")
         subprocess.Popen([sys.executable, "start_system.py"])
     
     print("\n" + "="*50)
-    print("🎉 系统启动完成！")
-    print("前端: http://localhost:3000")
-    print("后端: http://localhost:8000")
+    print("🎉 System startup complete!")
+    print("Frontend: http://localhost:3000")
+    print("Backend: http://localhost:8000")
     print("="*50)
     
-    input("\n按回车键退出...")
+    input("\nPress Enter to exit...")
 
 if __name__ == "__main__":
     main()

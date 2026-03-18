@@ -1,8 +1,8 @@
-# 环境配置文件
+# Environment configuration files
 .env
 *.env
 
-# GEE 认证文件
+# GEE authentication files
 gee_service_account_key.json
 *.json
 
@@ -29,7 +29,7 @@ wheels/
 *.egg
 MANIFEST
 
-# 虚拟环境
+# Virtual environments
 venv/
 env/
 ENV/
@@ -43,7 +43,7 @@ venv.bak/
 *.swo
 *~
 
-# 操作系统
+# Operating system
 .DS_Store
 .DS_Store?
 ._*
@@ -52,48 +52,48 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# 日志文件
+# Log files
 *.log
 logs/
 
-# 临时文件
+# Temporary files
 *.tmp
 *.temp
 temp/
 tmp/
 
-# 测试文件
+# Test files
 test_*.py
 test_*.bat
 test_*.html
 
-# 备份文件
+# Backup files
 *.bak
 *.backup
 
-# 数据库
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# 缓存
+# Cache
 .cache/
 .pytest_cache/
 
-# 覆盖率报告
+# Coverage reports
 htmlcov/
 .coverage
 .coverage.*
 coverage.xml
 
-# 文档构建
+# Documentation build
 docs/_build/
 
-# 前端构建（如果不需要提交）
+# Frontend build (if not needed in commits)
 # frontend/build/
 # frontend/dist/
 
-# 其他
+# Other
 *.pid
 *.seed
 *.pid.lock

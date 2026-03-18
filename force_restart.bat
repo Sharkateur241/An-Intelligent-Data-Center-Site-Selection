@@ -1,44 +1,44 @@
 @echo off
 chcp 65001
 echo ========================================
-echo 强制重启系统 - 清除所有缓存
+echo Force Restart System - Clear All Cache
 echo ========================================
 echo.
 
-echo 🔄 正在停止所有相关进程...
+echo 🔄 Stopping all related processes...
 taskkill /f /im python.exe 2>nul
 taskkill /f /im node.exe 2>nul
 
 echo.
-echo ⏳ 等待5秒确保进程完全停止...
+echo ⏳ Waiting 5 seconds to ensure processes are fully stopped...
 timeout /t 5 /nobreak >nul
 
 echo.
-echo 🧹 清除Python缓存...
+echo 🧹 Clearing Python cache...
 for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d"
 del /s /q *.pyc 2>nul
 
 echo.
-echo 🔄 重新启动系统...
-echo 设置代理...
+echo 🔄 Restarting system...
+echo Setting proxy...
 set HTTP_PROXY=http://127.0.0.1:1082
 set HTTPS_PROXY=http://127.0.0.1:1082
 
-echo 启动AI分析模式...
+echo Starting AI analysis mode...
 cd frontend
 call npm run build
 cd ..
 
 echo.
-echo 🚀 启动后端服务器...
+echo 🚀 Starting backend server...
 start "Backend Server" cmd /k "python start_system.py"
 
 echo.
 echo ========================================
-echo ✅ 强制重启完成！
+echo ✅ Force restart complete!
 echo ========================================
 echo.
-echo 等待后端启动完成后再测试...
-echo 后端控制台应该显示新的调试信息
+echo Wait for the backend to finish starting before testing...
+echo The backend console should display new debug information
 echo.
 pause
