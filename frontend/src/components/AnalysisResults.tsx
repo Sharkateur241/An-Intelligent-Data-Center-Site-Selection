@@ -146,7 +146,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                 <Text strong>
                   {energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh?.toFixed(0)} MWh/yr
                 </Text><br />
-                <Text>Coverage: {(energy_assessment?.storage_assessment?.renewable_coverage * 100).toFixed(1)}%</Text>
+                <Text>Coverage: {((energy_assessment?.storage_assessment?.renewable_coverage ?? 0) * 100).toFixed(1)}%</Text>
               </div>
             </Card>
           </Col>
@@ -226,7 +226,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                   </div>
                   <Text type="secondary">Capacity: {option.capacity_mw} MW</Text><br />
                   <Text type="secondary">Target users: {option.target_users}</Text><br />
-                  <Text type="secondary">Annual revenue: {option.economic_value.toLocaleString()} RMB</Text>
+                  <Text type="secondary">Annual revenue: {option.economic_value?.toLocaleString() ?? 'N/A'} RMB</Text>
                 </Card>
               ))}
             </div>

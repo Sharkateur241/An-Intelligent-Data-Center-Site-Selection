@@ -91,6 +91,7 @@ class PROMETHEEMCGP:
                 "energy_analysis": energy_data,
                 "mcgp_result": mcgp_result,
                 "final_ranking": final_ranking,
+                "overall_score": final_ranking.get("final_score", 50),
                 "recommendation": self._generate_recommendation(final_ranking),
                 "methodology": "PROMETHEE-MCGP Integrated Method"
             }
@@ -287,20 +288,23 @@ class PROMETHEEMCGP:
         return float(leaving_flow[0]), float(entering_flow[0]), float(net_flow[0])
     
     def _generate_ranking(self, net_flow: float) -> Dict[str, Any]:
-        """Generate ranking"""
-        if net_flow > 0.1:
+        """Generate ranking.
+
+        PROMETHEE net flows lie in [-1, 1].  Map linearly to [0, 100] so that
+        -1 → 0, 0 → 50, +1 → 100.  This avoids the previous bug where a
+        net_flow of 0.2 was multiplied by 10 to give a score of 2.
+        """
+        score = max(0.0, min(100.0, (net_flow + 1) / 2 * 100))
+
+        if score >= 80:
             level = "Excellent"
-            score = min(net_flow * 10, 100)
-        elif net_flow > 0:
+        elif score >= 65:
             level = "Good"
-            score = 70 + net_flow * 30
-        elif net_flow > -0.1:
+        elif score >= 50:
             level = "Average"
-            score = 50 + (net_flow + 0.1) * 200
         else:
             level = "Below Average"
-            score = max(net_flow * 50, 0)
-        
+
         return {
             "level": level,
             "score": round(score, 2),
@@ -314,7 +318,7 @@ class PROMETHEEMCGP:
         try:
             # Build objective function
             goals = {
-                "economic_score": economic_ranking.get("score", 50),
+                "economic_score": economic_ranking.get("ranking", {}).get("score", 50),
                 "temperature_suitability": self._calculate_temperature_suitability(
                     environmental_data["annual_temperature"]
                 ),
@@ -369,7 +373,7 @@ class PROMETHEEMCGP:
                                     mcgp_result: Dict[str, Any]) -> Dict[str, Any]:
         """Generate final ranking"""
         try:
-            economic_score = economic_ranking.get("score", 50)
+            economic_score = economic_ranking.get("ranking", {}).get("score", 50)
             comprehensive_score = mcgp_result.get("comprehensive_score", 50)
             
             # Composite score
@@ -497,9 +501,18 @@ class PROMETHEEMCGP:
             scores = self._extract_scores_from_ai_results(
                 ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision
             )
-            
-            # Perform PROMETHEE-MCGP analysis using extracted scores
-            analysis_result = self._perform_promethee_mcgp_analysis(scores)
+
+            if scores:
+                # AI scores available — use them
+                analysis_result = self._perform_promethee_mcgp_analysis(scores)
+            else:
+                # AI returned free text or nothing usable; fall back to the
+                # geographic PROMETHEE-MCGP analysis which derives a real score
+                # from location coordinates and reference city data.
+                print("ℹ️  No structured AI scores extracted — falling back to geographic PROMETHEE-MCGP")
+                analysis_result = await self.analyze_data_center_site_selection(
+                    latitude, longitude, city_name
+                )
             
             # Add references to AI analysis results
             analysis_result["ai_analysis_integration"] = {

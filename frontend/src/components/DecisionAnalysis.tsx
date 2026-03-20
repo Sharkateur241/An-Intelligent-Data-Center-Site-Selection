@@ -12,7 +12,6 @@ import {
 } from "antd";
 import {
   CheckCircleOutlined,
-  ExclamationCircleOutlined,
   WarningOutlined,
   BulbOutlined,
   ThunderboltOutlined,
@@ -111,8 +110,8 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
   const radarData = decision_recommendation?.detailed_scores
     ? Object.entries(decision_recommendation.detailed_scores).map(
         ([criterion, score]: [string, any]) => ({
-          criterion: criterion.replace("_", " "),
-          score: score.score,
+          criterion: criterion.replace(/_/g, " "),
+          score: score?.score ?? 0,
           fullMark: 100,
         })
       )
@@ -180,9 +179,10 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
             <div style={{ textAlign: "center" }}>
               <Title level={3}>Analysis Time</Title>
               <Text type="secondary">
-                {new Date(
-                  decision_recommendation?.analysis_date || ""
-                ).toLocaleString()}
+                {(() => {
+                  const d = new Date(decision_recommendation?.analysis_date || "");
+                  return isNaN(d.getTime()) ? "N/A" : d.toLocaleString();
+                })()}
               </Text>
             </div>
           </Col>
@@ -242,7 +242,7 @@ const DecisionAnalysis: React.FC<DecisionAnalysisProps> = ({ data }) => {
       <Card title="Decision Recommendations" style={{ marginBottom: 16 }}>
         <List
           dataSource={decision_recommendation?.recommendations || []}
-          renderItem={(item: string, index: number) => (
+          renderItem={(item: string) => (
             <List.Item>
               <div
                 style={{

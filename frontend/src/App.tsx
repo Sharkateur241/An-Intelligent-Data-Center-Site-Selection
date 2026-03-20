@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
+import { ConfigProvider, theme as antTheme } from "antd";
+import EnergyAssessment from "./components/EnergyAssessment";
+import DecisionAnalysis from "./components/DecisionAnalysis";
+import AnalysisResults from "./components/AnalysisResults";
+import GeographicPanel from "./components/GeographicPanel";
 import {
   MapContainer,
   TileLayer,
@@ -76,8 +81,8 @@ function MapClickHandler({
   useMapEvents({
     click(e) {
       onLocationSelect(
-        parseFloat(e.latlng.lat.toFixed(4)),
-        parseFloat(e.latlng.lng.toFixed(4))
+        parseFloat(e.latlng.lat.toFixed(6)),
+        parseFloat(e.latlng.lng.toFixed(6))
       );
     },
   });
@@ -85,10 +90,16 @@ function MapClickHandler({
 }
 
 function ScoreRing({ score, label }: { score: number; label: string }) {
+  const [animated, setAnimated] = useState(false);
   const r = 54;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(Math.max(score, 0), 100) / 100;
   const color = score >= 80 ? "#22d3a5" : score >= 60 ? "#f59e0b" : "#ef4444";
+
+  useEffect(() => {
+    const t = setTimeout(() => setAnimated(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="score-ring-wrap">
@@ -109,7 +120,7 @@ function ScoreRing({ score, label }: { score: number; label: string }) {
           stroke={color}
           strokeWidth="10"
           strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - pct)}
+          strokeDashoffset={animated ? circ * (1 - pct) : circ}
           strokeLinecap="round"
           transform="rotate(-90 70 70)"
           className="ring-progress"
@@ -150,13 +161,13 @@ function DataSection({
   accent?: string;
   maxRows?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (!data || typeof data !== "object") return null;
   const flat = Object.entries(data).filter(
     ([, v]) => v !== null && v !== undefined && typeof v !== "object"
   );
   if (flat.length === 0) return null;
-
-  const [expanded, setExpanded] = useState(false);
   const visibleRows =
     maxRows && !expanded ? flat.slice(0, maxRows) : flat;
   const hiddenCount = maxRows ? Math.max(flat.length - maxRows, 0) : 0;
@@ -243,8 +254,12 @@ export default function App() {
     useState<LocationRecommendationResponse | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
+  const [showSticky, setShowSticky] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'energy' | 'decision' | 'ai'>('overview');
   const markerRef = useRef<L.Marker | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const scorePanelRef = useRef<HTMLDivElement>(null);
+  const recAbortRef = useRef<AbortController | null>(null);
 
   const handleLocationSelect = (lat: number, lng: number, name?: string) => {
     setLatitude(lat.toString());
@@ -293,9 +308,46 @@ export default function App() {
     }
   }, [result]);
 
+  useEffect(() => {
+    if (!result || !scorePanelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowSticky(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-58px 0px 0px 0px" }
+    );
+    observer.observe(scorePanelRef.current);
+    return () => observer.disconnect();
+  }, [result]);
+
+  const geoLocate = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(6));
+        const lng = parseFloat(pos.coords.longitude.toFixed(6));
+        handleLocationSelect(lat, lng);
+      },
+      () => setError("Geolocation denied or unavailable.")
+    );
+  };
+
   const startAnalysis = async () => {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    const rad = Number(radius);
     if (!latitude || !longitude) {
       setError("Select a location on the map or enter coordinates.");
+      return;
+    }
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      setError("Latitude must be between -90 and 90.");
+      return;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      setError("Longitude must be between -180 and 180.");
+      return;
+    }
+    if (isNaN(rad) || rad <= 0) {
+      setError("Radius must be a positive number.");
       return;
     }
     setError("");
@@ -330,6 +382,9 @@ export default function App() {
   };
 
   const fetchRecommendation = async (lat: number, lon: number) => {
+    if (recAbortRef.current) recAbortRef.current.abort();
+    const controller = new AbortController();
+    recAbortRef.current = controller;
     setRecLoading(true);
     setRecError(null);
     try {
@@ -342,6 +397,7 @@ export default function App() {
           search_radius_km: 100,
           samples: 14,
         }),
+        signal: controller.signal,
       });
       if (!resp.ok) {
         const t = await resp.text();
@@ -350,6 +406,7 @@ export default function App() {
       const data: LocationRecommendationResponse = await resp.json();
       setRecommendation(data);
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       setRecError(err.message);
     } finally {
       setRecLoading(false);
@@ -438,14 +495,10 @@ export default function App() {
         <div className="hero-noise" />
         <div className="hero-glow" />
         <div className="hero-inner">
-          <div className="hero-chip">
-            An Intelligent Site Selection Data Center
-          </div>
+          <div className="hero-chip">IDCSS Platform · v2.0</div>
           <h1 className="hero-h1">
-            An Intelligent Site Selection Data Center and Energy Optimisation
-            Based on <em>Google Earth Engine</em> and <em>AI Technology</em>
-            <br />
-            data center location
+            Intelligent Data Center Site Selection &amp; Energy Optimisation
+            <br />Based on <em>Google Earth Engine</em> and <em>AI Technology</em>
           </h1>
           <p className="hero-sub">
             Satellite imagery × Google Earth Engine × AI-powered
@@ -455,119 +508,122 @@ export default function App() {
       </header>
 
       <main className="main">
-        <section className="panel map-panel">
-          <div className="panel-head">
-            <span className="panel-icon">◎</span>
-            <span className="panel-title">
-              Select Location by clicking in the map
-            </span>
-            <span className="panel-hint">Click anywhere on the map</span>
-          </div>
-          <div className="map-box">
-            <MapContainer
-              center={[20, 10]}
-              zoom={2}
-              scrollWheelZoom
-              style={{ height: "100%", width: "100%" }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <MapClickHandler onLocationSelect={handleLocationSelect} />
-              {clickedLocation && (
-                <Marker
-                  position={[clickedLocation.lat, clickedLocation.lng]}
-                  icon={pinIcon}
-                  ref={markerRef}
-                >
-                  <Popup>
-                    <div className="popup-box">
-                      <div className="popup-coord">
-                        {clickedLocation.lat}°, {clickedLocation.lng}°
-                      </div>
-                      <button
-                        className="popup-btn"
-                        onClick={() =>
-                          handleLocationSelect(
-                            clickedLocation.lat,
-                            clickedLocation.lng
-                          )
-                        }
-                      >
-                        Confirm location
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-            </MapContainer>
-          </div>
-          {clickedLocation && (
-            <div className="coord-bar">
-              <span className="coord-label">📍 Selected</span>
-              <code className="coord-code">
-                {clickedLocation.lat}° N &nbsp;/&nbsp; {clickedLocation.lng}° E
-              </code>
+        <div className="map-row">
+          <section className="panel map-panel">
+            <div className="panel-head">
+              <span className="panel-icon">◎</span>
+              <span className="panel-title">Select Location</span>
+              <span className="panel-hint">Click anywhere on the map</span>
             </div>
-          )}
-        </section>
-
-        <section className="panel params-panel">
-          <div className="panel-head">
-            <span className="panel-icon">⊞</span>
-            <span className="panel-title">Parameters</span>
-          </div>
-          <div className="params-grid">
-            <div className="field">
-              <label className="field-label">Latitude</label>
-              <input
-                className="field-input"
-                type="number"
-                placeholder="e.g. 48.8566"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label className="field-label">Longitude</label>
-              <input
-                className="field-input"
-                type="number"
-                placeholder="e.g. 2.3522"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label className="field-label">Analysis Radius</label>
-              <select
-                className="field-input"
-                value={radius}
-                onChange={(e) => setRadius(e.target.value)}
+            <div className="map-box">
+              <MapContainer
+                center={[20, 10]}
+                zoom={2}
+                scrollWheelZoom
+                style={{ height: "100%", width: "100%" }}
               >
-                <option value="500">500 m</option>
-                <option value="1000">1 000 m</option>
-                <option value="2000">2 000 m</option>
-                <option value="5000">5 000 m</option>
-              </select>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapClickHandler onLocationSelect={handleLocationSelect} />
+                {clickedLocation && (
+                  <Marker
+                    position={[clickedLocation.lat, clickedLocation.lng]}
+                    icon={pinIcon}
+                    ref={markerRef}
+                  >
+                    <Popup>
+                      <div className="popup-box">
+                        <div className="popup-coord">
+                          {clickedLocation.lat}°, {clickedLocation.lng}°
+                        </div>
+                        <button
+                          className="popup-btn"
+                          onClick={() =>
+                            handleLocationSelect(
+                              clickedLocation.lat,
+                              clickedLocation.lng
+                            )
+                          }
+                        >
+                          Confirm location
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+              </MapContainer>
+              <button className="map-geo-btn" onClick={geoLocate} title="Use my location">
+                ⊕ My Location
+              </button>
             </div>
-          </div>
-          <button
-            className="run-btn"
-            onClick={startAnalysis}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="btn-spinner" /> Running analysis…
-              </>
-            ) : (
-              <>Run AI Analysis →</>
+            {clickedLocation && (
+              <div className="coord-bar">
+                <span className="coord-label">📍 Selected</span>
+                <code className="coord-code">
+                  {Math.abs(clickedLocation.lat)}° {clickedLocation.lat >= 0 ? "N" : "S"} &nbsp;/&nbsp; {Math.abs(clickedLocation.lng)}° {clickedLocation.lng >= 0 ? "E" : "W"}
+                </code>
+              </div>
             )}
-          </button>
-          {error && <div className="err-box">⚠ {error}</div>}
-        </section>
+          </section>
+
+          <section className="panel params-panel">
+            <div className="panel-head">
+              <span className="panel-icon">⊞</span>
+              <span className="panel-title">Parameters</span>
+            </div>
+            <div className="params-grid">
+              <div className="field">
+                <label className="field-label">Latitude</label>
+                <input
+                  className="field-input"
+                  type="number"
+                  placeholder="e.g. 48.8566"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Longitude</label>
+                <input
+                  className="field-input"
+                  type="number"
+                  placeholder="e.g. 2.3522"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Analysis Radius</label>
+                <select
+                  className="field-input"
+                  value={radius}
+                  onChange={(e) => setRadius(e.target.value)}
+                >
+                  <option value="500">500 m</option>
+                  <option value="1000">1 000 m</option>
+                  <option value="2000">2 000 m</option>
+                  <option value="5000">5 000 m</option>
+                </select>
+              </div>
+            </div>
+            <button
+              className="run-btn"
+              onClick={startAnalysis}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="btn-spinner" /> Running analysis…
+                </>
+              ) : (
+                <>Run AI Analysis →</>
+              )}
+            </button>
+            {error && <div className="err-box">⚠ {error}</div>}
+          </section>
+        </div>
 
         {loading && (
           <section className="panel load-panel">
@@ -601,7 +657,7 @@ export default function App() {
 
         {result && (
           <div ref={resultsRef} className="results-root">
-            <section className="panel score-panel">
+            <section className="panel score-panel" ref={scorePanelRef}>
               <div className="score-left">
                 <div className="score-loc">
                   <span>◎</span>
@@ -733,13 +789,13 @@ export default function App() {
             )}
 
             <div className="data-grid">
-              <DataSection
-                icon="🌍"
-                title="Geographic Environment"
-                data={result.geographic_environment}
-                accent="#22d3a5"
-                maxRows={8}
-              />
+              <div className="ds-card" style={{ "--accent": "#22d3a5", gridColumn: "1 / -1" } as any}>
+                <div className="ds-head">
+                  <span className="ds-icon">🌍</span>
+                  <span className="ds-title">Geographic Environment</span>
+                </div>
+                <GeographicPanel data={result.geographic_environment} />
+              </div>
               <DataSection
                 icon="🏗"
                 title="Land Analysis"
@@ -784,49 +840,68 @@ export default function App() {
               />
             </div>
 
-            {(result.ai_multimodal_analysis ||
-              result.ai_energy_analysis ||
-              result.ai_power_supply_analysis ||
-              result.ai_energy_storage_analysis ||
-              result.ai_decision_analysis) && (
-              <section className="panel ai-section">
-                <div className="panel-head">
-                  <span className="panel-icon">◈</span>
-                  <span className="panel-title">AI Reasoning</span>
-                  <span className="panel-hint">Click any card to expand</span>
+            <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
+              <section className="panel detail-panel">
+                <div className="result-tabs">
+                  {(["overview", "energy", "decision", "ai"] as const).map((tab) => {
+                    const labels: Record<string, string> = {
+                      overview: "📊 Overview",
+                      energy: "⚡ Energy",
+                      decision: "📐 Decision",
+                      ai: "🧠 AI Reasoning",
+                    };
+                    return (
+                      <button
+                        key={tab}
+                        className={`result-tab${activeDetailTab === tab ? " active" : ""}`}
+                        onClick={() => setActiveDetailTab(tab)}
+                      >
+                        {labels[tab]}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="ai-list">
-                  <AICard
-                    icon="🛰"
-                    title="Multimodal Analysis"
-                    data={result.ai_multimodal_analysis}
-                  />
-                  <AICard
-                    icon="⚡"
-                    title="Energy AI Analysis"
-                    data={result.ai_energy_analysis}
-                  />
-                  <AICard
-                    icon="🔌"
-                    title="Power Supply AI Analysis"
-                    data={result.ai_power_supply_analysis}
-                  />
-                  <AICard
-                    icon="🔋"
-                    title="Energy Storage AI Analysis"
-                    data={result.ai_energy_storage_analysis}
-                  />
-                  <AICard
-                    icon="🧠"
-                    title="Decision AI Analysis"
-                    data={result.ai_decision_analysis}
-                  />
+                <div className="tab-content">
+                  {activeDetailTab === "overview" && <AnalysisResults data={result} />}
+                  {activeDetailTab === "energy" && <EnergyAssessment data={result} />}
+                  {activeDetailTab === "decision" && <DecisionAnalysis data={result} />}
+                  {activeDetailTab === "ai" && (
+                    <div className="ai-list">
+                      <AICard icon="🛰" title="Multimodal Analysis" data={result.ai_multimodal_analysis} />
+                      <AICard icon="⚡" title="Energy AI Analysis" data={result.ai_energy_analysis} />
+                      <AICard icon="🔌" title="Power Supply AI" data={result.ai_power_supply_analysis} />
+                      <AICard icon="🔋" title="Energy Storage AI" data={result.ai_energy_storage_analysis} />
+                      <AICard icon="🧠" title="Decision AI" data={result.ai_decision_analysis} />
+                    </div>
+                  )}
                 </div>
               </section>
-            )}
+            </ConfigProvider>
           </div>
         )}
       </main>
+
+      {result && overallScore !== null && (
+        <div className={`sticky-bar${showSticky ? " visible" : ""}`}>
+          <span className="sticky-loc">
+            {result.location.latitude.toFixed(4)}°, {result.location.longitude.toFixed(4)}°
+          </span>
+          <div className="sticky-score">
+            <span
+              className="sticky-score-val"
+              style={{
+                color: Number(overallScore) >= 80 ? "#22d3a5" : Number(overallScore) >= 65 ? "#f59e0b" : "#ef4444",
+              }}
+            >
+              {Math.round(Number(overallScore))}
+            </span>
+            <span className="sticky-score-label">/ 100</span>
+          </div>
+          <Verdict score={Number(overallScore)} />
+          <span className="sticky-spacer" />
+          <span className="sticky-scroll-hint">↑ scroll up for details</span>
+        </div>
+      )}
 
       <footer className="foot">
         © 2026 IDCSS — Graduation Thesis Essongue Iperot Loice 2026

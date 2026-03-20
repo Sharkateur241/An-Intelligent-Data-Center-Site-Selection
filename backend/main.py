@@ -13,7 +13,6 @@ import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 import math
-import random
 
 # Load environment variables
 load_dotenv()
@@ -162,14 +161,15 @@ async def _quick_geo_snapshot(lat: float, lon: float) -> Dict[str, Any]:
         base_elevation += 500
     elif lon < 110:
         base_elevation -= 100
-    elevation = int(base_elevation + random.uniform(-80, 120))
+    # Deterministic estimate: midpoint of the ±100 m residual uncertainty band
+    elevation = int(base_elevation + 20)
 
     # Water proximity heuristic
     water_sources = []
     if lon > 110:
-        water_sources.append({"type": "河流", "distance_km": random.randint(2, 8)})
+        water_sources.append({"type": "河流", "distance_km": 5})
     if lat > 35:
-        water_sources.append({"type": "地下水", "distance_km": random.randint(5, 15)})
+        water_sources.append({"type": "地下水", "distance_km": 10})
     water_tag = "丰富" if water_sources else "一般"
 
     # Hazards
@@ -403,10 +403,12 @@ async def recommend_location(request: LocationRecommendationRequest):
     """
     try:
         candidates: List[LocationRecommendation] = []
-        for i in range(max(4, request.samples)):
-            # Spread bearings evenly with small randomness
-            bearing = (360 / max(4, request.samples)) * i + random.uniform(-10, 10)
-            distance = random.uniform(request.search_radius_km * 0.3, request.search_radius_km)
+        n = max(4, request.samples)
+        for i in range(n):
+            # Evenly spaced bearings; distance increases linearly from 30 % to 100 % of
+            # search radius so candidates span the full annulus deterministically.
+            bearing = (360 / n) * i
+            distance = request.search_radius_km * (0.3 + 0.7 * i / max(n - 1, 1))
             pt = _haversine_offset(request.latitude, request.longitude, distance, bearing)
             scored = await _score_candidate(pt["lat"], pt["lon"])
             candidates.append(

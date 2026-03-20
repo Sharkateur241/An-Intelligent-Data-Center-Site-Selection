@@ -124,22 +124,21 @@ class ImageAnalysisService:
         """
         Generate realistic land use data based on geographic location
         """
-        import random
-        
         # Regional characteristics based on geographic location
         region_type = self._get_region_type(lat, lon)
-        
-        # Generate different land use distributions based on region type
+
+        # Deterministic land use distributions: midpoint of each empirical range.
+        # Values are normalised to sum to 1 below; confidence labelled in return dict.
         if region_type == "Urban":
             land_distribution = {
-                "Water": random.uniform(0.05, 0.15),
-                "Forest": random.uniform(0.10, 0.20),
-                "Grassland": random.uniform(0.05, 0.15),
-                "Farmland": random.uniform(0.05, 0.15),
-                "Built-up Land": random.uniform(0.40, 0.60),
-                "Bare Land": random.uniform(0.05, 0.15)
+                "Water": 0.10,
+                "Forest": 0.15,
+                "Grassland": 0.10,
+                "Farmland": 0.10,
+                "Built-up Land": 0.50,
+                "Bare Land": 0.10,
             }
-            suitability_score = random.uniform(0.60, 0.80)
+            suitability_score = 0.70
             recommendations = [
                 "Urban area with well-developed infrastructure",
                 "Stable power supply",
@@ -147,14 +146,14 @@ class ImageAnalysisService:
             ]
         elif region_type == "Suburban":
             land_distribution = {
-                "Water": random.uniform(0.10, 0.20),
-                "Forest": random.uniform(0.20, 0.35),
-                "Grassland": random.uniform(0.15, 0.25),
-                "Farmland": random.uniform(0.20, 0.40),
-                "Built-up Land": random.uniform(0.10, 0.25),
-                "Bare Land": random.uniform(0.05, 0.15)
+                "Water": 0.15,
+                "Forest": 0.275,
+                "Grassland": 0.20,
+                "Farmland": 0.30,
+                "Built-up Land": 0.175,
+                "Bare Land": 0.10,
             }
-            suitability_score = random.uniform(0.70, 0.90)
+            suitability_score = 0.80
             recommendations = [
                 "Suburban location with moderate land costs",
                 "Good environmental conditions",
@@ -162,14 +161,14 @@ class ImageAnalysisService:
             ]
         elif region_type == "Mountainous":
             land_distribution = {
-                "Water": random.uniform(0.05, 0.15),
-                "Forest": random.uniform(0.40, 0.60),
-                "Grassland": random.uniform(0.20, 0.35),
-                "Farmland": random.uniform(0.05, 0.15),
-                "Built-up Land": random.uniform(0.05, 0.15),
-                "Bare Land": random.uniform(0.10, 0.25)
+                "Water": 0.10,
+                "Forest": 0.50,
+                "Grassland": 0.275,
+                "Farmland": 0.10,
+                "Built-up Land": 0.10,
+                "Bare Land": 0.175,
             }
-            suitability_score = random.uniform(0.50, 0.70)
+            suitability_score = 0.60
             recommendations = [
                 "Mountainous terrain, construction is more challenging",
                 "Beautiful environment but inconvenient transportation",
@@ -177,14 +176,14 @@ class ImageAnalysisService:
             ]
         else:  # Plain
             land_distribution = {
-                "Water": random.uniform(0.15, 0.25),
-                "Forest": random.uniform(0.15, 0.25),
-                "Grassland": random.uniform(0.20, 0.30),
-                "Farmland": random.uniform(0.30, 0.50),
-                "Built-up Land": random.uniform(0.10, 0.20),
-                "Bare Land": random.uniform(0.05, 0.15)
+                "Water": 0.20,
+                "Forest": 0.20,
+                "Grassland": 0.25,
+                "Farmland": 0.40,
+                "Built-up Land": 0.15,
+                "Bare Land": 0.10,
             }
-            suitability_score = random.uniform(0.75, 0.95)
+            suitability_score = 0.85
             recommendations = [
                 "Flat terrain with good construction conditions",
                 "Level land suitable for large-scale development",
@@ -201,7 +200,8 @@ class ImageAnalysisService:
             "land_cover_distribution": land_distribution,
             "suitability_score": round(suitability_score, 2),
             "recommendations": recommendations,
-            "region_type": region_type
+            "region_type": region_type,
+            "data_confidence": "estimated (deterministic midpoint per region type; no satellite classification)"
         }
     
     def _get_region_type(self, lat: float, lon: float) -> str:

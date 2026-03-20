@@ -93,8 +93,6 @@ class EnergyAssessmentService:
         """
         Get solar energy data based on real geographic location
         """
-        import random
-        
         # Solar energy resource assessment based on real geographic location
         
         # Calculate base solar irradiance from coordinates
@@ -128,9 +126,9 @@ class EnergyAssessmentService:
                 min_distance = distance
                 closest_irradiance = irradiance
         
-        # Add some random variation to simulate real data uncertainty
-        variation = random.uniform(0.9, 1.1)
-        annual_irradiance = int(closest_irradiance * variation)
+        # Deterministic estimate: use the interpolated reference value directly.
+        # Confidence labelled below; no artificial noise added.
+        annual_irradiance = int(closest_irradiance)
         
         # Determine solar resource grade
         if annual_irradiance > 1800:
@@ -149,18 +147,17 @@ class EnergyAssessmentService:
         return {
             "annual_irradiance": annual_irradiance,  # kWh/m²
             "solar_zone": solar_zone,
-            "peak_sun_hours": round(annual_irradiance / 1000, 1),  # Peak sun hours
+            "peak_sun_hours": round(annual_irradiance / 1000, 1),
             "solar_potential": potential,
             "latitude": lat,
-            "longitude": lon
+            "longitude": lon,
+            "data_confidence": "estimated (interpolated from reference stations)"
         }
     
     async def _get_wind_data(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Get wind energy data based on real geographic location
         """
-        import random
-        
         # Wind energy resource assessment based on real geographic location
         
         # Calculate base wind speed from coordinates
@@ -194,9 +191,8 @@ class EnergyAssessmentService:
                 min_distance = distance
                 closest_speed = speed
         
-        # Add some random variation
-        variation = random.uniform(0.9, 1.1)
-        average_speed = round(closest_speed * variation, 1)
+        # Deterministic estimate: use the interpolated reference value directly.
+        average_speed = round(closest_speed, 1)
         
         # Calculate power density
         power_density = int(0.5 * 1.225 * (average_speed ** 3))  # W/m²
@@ -411,8 +407,6 @@ class EnergyAssessmentService:
         """
         Analyze data center waste heat utilization options based on real location and city characteristics
         """
-        import random
-        
         # Estimate data center scale based on geographic location
         # Large cities typically have larger data centers
         city_scale_factors = {
@@ -436,9 +430,9 @@ class EnergyAssessmentService:
                 min_distance = distance
                 scale_factor = factor
         
-        # Data center power (MW)
+        # Data center power (MW) — deterministic estimate at midpoint of expected range
         base_power = 50  # Base power
-        data_center_power = int(base_power * scale_factor + random.uniform(-10, 20))
+        data_center_power = int(base_power * scale_factor + 5)
         
         # Heat recovery rate adjusted by climate conditions
         if lat > 40:  # Cold northern region
@@ -550,8 +544,6 @@ class EnergyAssessmentService:
         """
         Analyze geographic environment - rivers, elevation, forest cover, and other resources
         """
-        import random
-        
         # Environmental analysis based on geographic location
         env_analysis = {
             "elevation": 0,
@@ -576,29 +568,30 @@ class EnergyAssessmentService:
         elif lon < 110:  # Eastern region
             base_elevation -= 100
             
-        env_analysis["elevation"] = int(base_elevation + random.uniform(-100, 200))
+        # Deterministic estimate: midpoint of the ±150 m residual uncertainty band
+        env_analysis["elevation"] = int(base_elevation + 50)
         
         # Water resource analysis
         water_sources = []
         if lon > 110:  # Eastern coastal region
-            water_sources.append({"type": "river", "distance_km": random.randint(2, 8), "capacity": "abundant"})
+            water_sources.append({"type": "river", "distance_km": 5, "capacity": "abundant"})
         if lat > 35:  # Northern region
-            water_sources.append({"type": "groundwater", "depth_m": random.randint(50, 150), "capacity": "moderate"})
+            water_sources.append({"type": "groundwater", "depth_m": 100, "capacity": "moderate"})
         if 22 <= lat <= 25 and 110 <= lon <= 115:  # Pearl River Delta
-            water_sources.append({"type": "seawater", "distance_km": random.randint(5, 15), "capacity": "abundant"})
+            water_sources.append({"type": "seawater", "distance_km": 10, "capacity": "abundant"})
             
         env_analysis["water_resources"] = {
             "sources": water_sources,
             "total_capacity": "abundant" if len(water_sources) > 2 else "moderate" if len(water_sources) > 1 else "limited"
         }
         
-        # Forest coverage
+        # Forest coverage — deterministic midpoint of each zone's empirical range
         if lat > 45:  # Northeast region
-            forest_coverage = random.uniform(40, 60)
+            forest_coverage = 50.0
         elif 25 <= lat <= 35:  # Central region
-            forest_coverage = random.uniform(20, 40)
+            forest_coverage = 30.0
         else:  # Southern region
-            forest_coverage = random.uniform(30, 50)
+            forest_coverage = 40.0
         env_analysis["forest_coverage"] = round(forest_coverage, 1)
         
         # Climate zone
@@ -626,7 +619,8 @@ class EnergyAssessmentService:
         satellite_data = await self._get_satellite_image_data(lat, lon, radius)
         env_analysis["satellite_image_url"] = satellite_data["url"]
         env_analysis["satellite_image_metadata"] = satellite_data["metadata"]
-        
+        env_analysis["data_confidence"] = "estimated (coordinate-based heuristics; no real DEM or land survey)"
+
         return env_analysis
 
     async def _get_satellite_image_data(self, lat: float, lon: float, radius: float = 1000) -> Dict[str, Any]:

@@ -14,13 +14,6 @@ interface EnergyAssessmentProps {
   data: any;
 }
 
-const translateLevel = (val?: string) => {
-  if (val === '高') return 'High';
-  if (val === '中') return 'Medium';
-  if (val === '低') return 'Low';
-  return val || '';
-};
-
 const translateGridStability = (val?: string) => {
   if (val === '充足') return 'Sufficient';
   if (val === '良好') return 'Good';
@@ -46,6 +39,13 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
 
   const { energy_assessment } = data;
 
+  // Storage need percentages derived from actual data
+  const storageNeeds = energy_assessment?.storage_assessment?.storage_needs;
+  const totalRequired = storageNeeds?.total_required || 1;
+  const emergencyPct = Math.min(((storageNeeds?.emergency_backup || 0) / totalRequired) * 100, 100);
+  const peakPct = Math.min(((storageNeeds?.peak_shaving || 0) / totalRequired) * 100, 100);
+  const gridPct = Math.min(((storageNeeds?.grid_stabilization || 0) / totalRequired) * 100, 100);
+
   // Prepare chart data
   const landUseData = data.land_analysis?.land_use_distribution ? 
     Object.entries(data.land_analysis.land_use_distribution).map(([name, value]: [string, any]) => ({
@@ -54,22 +54,11 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
       percentage: value * 100
     })) : [];
 
+  const solarMwh = energy_assessment?.renewable_potential?.solar_potential?.annual_generation_mwh || 0;
+  const windMwh = energy_assessment?.renewable_potential?.wind_potential?.annual_generation_mwh || 0;
   const energySourceData = [
-    {
-      name: 'Solar',
-      value: energy_assessment?.renewable_potential?.solar_potential?.annual_generation_mwh || 0,
-      color: '#faad14'
-    },
-    {
-      name: 'Wind',
-      value: energy_assessment?.renewable_potential?.wind_potential?.annual_generation_mwh || 0,
-      color: '#1890ff'
-    },
-    {
-      name: 'Grid',
-      value: 100000 - (energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh || 0),
-      color: '#ff7875'
-    }
+    { name: 'Solar', value: solarMwh, color: '#faad14' },
+    { name: 'Wind', value: windMwh, color: '#1890ff' },
   ];
 
   const storageColumns = [
@@ -247,9 +236,9 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
                 <Text>Emergency backup</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.emergency_backup?.toFixed(0)} MWh</Text>
               </div>
-              <Progress 
-                percent={25} 
-                strokeColor="#52c41a" 
+              <Progress
+                percent={parseFloat(emergencyPct.toFixed(1))}
+                strokeColor="#52c41a"
                 size="small"
               />
             </div>
@@ -259,9 +248,9 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
                 <Text>Peak shaving</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.peak_shaving?.toFixed(0)} MWh</Text>
               </div>
-              <Progress 
-                percent={50} 
-                strokeColor="#1890ff" 
+              <Progress
+                percent={parseFloat(peakPct.toFixed(1))}
+                strokeColor="#1890ff"
                 size="small"
               />
             </div>
@@ -271,9 +260,9 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
                 <Text>Grid stabilization</Text>
                 <Text strong>{energy_assessment?.storage_assessment?.storage_needs?.grid_stabilization?.toFixed(0)} MWh</Text>
               </div>
-              <Progress 
-                percent={15} 
-                strokeColor="#faad14" 
+              <Progress
+                percent={parseFloat(gridPct.toFixed(1))}
+                strokeColor="#faad14"
                 size="small"
               />
             </div>
