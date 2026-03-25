@@ -5,20 +5,17 @@ Power Supply Solution AI Analysis Service - Intelligent power supply solution an
 import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 
 class PowerSupplyAIAnalysisService:
     """Power Supply Solution AI Analysis Service Class"""
-    
+
     def __init__(self):
         """Initialize the power supply solution AI analysis service"""
-        # Set proxy
-        os.environ['HTTP_PROXY'] = 'http://127.0.0.1:1082'
-        os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:1082'
-        
-        self.client = OpenAI(
-            base_url='https://api.openai.com/v1',
+        # Do NOT mutate global proxy env vars here; they are set externally via .env / shell.
+        self.client = AsyncOpenAI(
+            base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             api_key=os.getenv('OPENAI_API_KEY')
         )
         self.model = "gpt-4o-2024-08-06"
@@ -142,7 +139,7 @@ Please combine this information to provide a more accurate analysis of the power
         """Call the AI analysis API"""
         try:
             # Use the official OpenAI library for API calls
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -186,7 +183,7 @@ Please combine this information to provide a more accurate analysis of the power
         """Test API connection"""
         try:
             # Simple API connection test
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {

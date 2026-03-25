@@ -37,7 +37,8 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
     );
   }
 
-  const { energy_assessment } = data;
+  // Use structured_energy (from real APIs) if available; fall back to energy_assessment
+  const energy_assessment = data.structured_energy ?? data.energy_assessment;
 
   // Storage need percentages derived from actual data
   const storageNeeds = energy_assessment?.storage_assessment?.storage_needs;
@@ -47,7 +48,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
   const gridPct = Math.min(((storageNeeds?.grid_stabilization || 0) / totalRequired) * 100, 100);
 
   // Prepare chart data
-  const landUseData = data.land_analysis?.land_use_distribution ? 
+  const landUseData = data.land_analysis?.land_use_distribution ?
     Object.entries(data.land_analysis.land_use_distribution).map(([name, value]: [string, any]) => ({
       name,
       value: (value * 100).toFixed(1),
@@ -103,7 +104,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={6}>
             <Statistic
               title="Annual solar irradiance"
-              value={energy_assessment?.solar_data?.annual_irradiance || 0}
+              value={energy_assessment?.solar_data?.annual_irradiance ?? 0}
               suffix="kWh/m²"
               prefix={<ThunderboltOutlined style={{ color: '#faad14' }} />}
             />
@@ -111,7 +112,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={6}>
             <Statistic
               title="Average wind speed"
-              value={energy_assessment?.wind_data?.average_speed || 0}
+              value={energy_assessment?.wind_data?.average_speed ?? 0}
               suffix="m/s"
               prefix={<EnvironmentOutlined style={{ color: '#1890ff' }} />}
             />
@@ -119,7 +120,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={6}>
             <Statistic
               title="Renewable potential"
-              value={energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh || 0}
+              value={energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh ?? 0}
               suffix="MWh/yr"
               prefix={<BulbOutlined style={{ color: '#52c41a' }} />}
             />
@@ -127,7 +128,7 @@ const EnergyAssessment: React.FC<EnergyAssessmentProps> = ({ data }) => {
           <Col span={6}>
             <Statistic
               title="Renewable coverage"
-              value={(energy_assessment?.storage_assessment?.renewable_coverage * 100 || 0).toFixed(1)}
+              value={((energy_assessment?.storage_assessment?.renewable_coverage ?? 0) * 100).toFixed(1)}
               suffix="%"
               prefix={<FireOutlined style={{ color: '#ff7875' }} />}
             />

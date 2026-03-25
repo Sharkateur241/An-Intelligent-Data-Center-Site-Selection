@@ -236,7 +236,7 @@ class DecisionAnalysisService:
         
         # Land cost score (based on land type)
         land_use_dist = land_analysis.get("land_use_distribution", {})
-        bare_land_ratio = land_use_dist.get("bare_land", 0)
+        bare_land_ratio = land_use_dist.get("Bare / sparse vegetation", 0)
         
         if bare_land_ratio > 0.5:
             land_cost_score = 20  # Bare land has low cost
@@ -280,7 +280,11 @@ class DecisionAnalysisService:
         
         # Land use impact score
         land_use_dist = land_analysis.get("land_use_distribution", {})
-        vegetation_ratio = land_use_dist.get("vegetation", 0)
+        vegetation_ratio = (
+            land_use_dist.get("Tree cover", 0) +
+            land_use_dist.get("Shrubland", 0) +
+            land_use_dist.get("Grassland", 0)
+        )
         
         if vegetation_ratio > 0.4:
             land_impact_score = -10  # High vegetation means greater environmental impact

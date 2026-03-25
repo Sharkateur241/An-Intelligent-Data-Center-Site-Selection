@@ -15,10 +15,12 @@ interface AnalysisResultsProps {
 }
 
 const translateLevel = (val?: string) => {
-  if (val === '高') return 'High';
-  if (val === '中') return 'Medium';
-  if (val === '低') return 'Low';
-  return val || '';
+  if (!val) return '';
+  const map: Record<string, string> = {
+    high: 'High', moderate: 'Moderate', low: 'Low',
+    '高': 'High', '中': 'Medium', '低': 'Low',
+  };
+  return map[val.toLowerCase()] ?? map[val] ?? val;
 };
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
@@ -36,7 +38,20 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
     );
   }
 
-  const { land_analysis, energy_assessment, decision_recommendation, heat_utilization } = data;
+  const { land_analysis, energy_assessment, decision_recommendation, heat_utilization, promethee_mcgp_analysis } = data;
+
+  // Structured energy numbers live in the PROMETHEE energy_analysis block.
+  // energy_assessment is the AI free-text result and has no solar_data/wind_data.
+  const energyData   = promethee_mcgp_analysis?.energy_analysis   ?? {};
+  const energyGoals  = promethee_mcgp_analysis?.mcgp_result?.goals ?? {};
+
+  const solarIrradiance   = energyData.solar_irradiance   ?? energy_assessment?.solar_data?.annual_irradiance;
+  const windSpeed         = energyData.wind_speed         ?? energy_assessment?.wind_data?.average_speed;
+  const renewableCoverage = energyData.renewable_coverage ?? energy_assessment?.renewable_coverage;
+
+  const solarScore   = energyGoals.solar_score   ?? energy_assessment?.solar_data?.score;
+  const windScore    = energyGoals.wind_score     ?? energy_assessment?.wind_data?.score;
+  const renewScore   = energyGoals.renewable_score ?? energy_assessment?.storage_assessment?.renewable_coverage;
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return '#52c41a';
@@ -117,11 +132,21 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
               <div style={{ textAlign: 'center' }}>
                 <ThunderboltOutlined style={{ fontSize: '24px', color: '#faad14' }} />
                 <Title level={4}>Solar Resource</Title>
-                <Text strong>{energy_assessment?.solar_data?.solar_zone}</Text><br />
-                <Text>Annual irradiance: {energy_assessment?.solar_data?.annual_irradiance} kWh/m²</Text><br />
-                <Tag color={energy_assessment?.solar_data?.solar_potential === '高' ? 'green' : 'orange'}>
-                  {translateLevel(energy_assessment?.solar_data?.solar_potential)}
-                </Tag>
+                {solarIrradiance != null ? (
+                  <>
+                    <Text strong style={{ fontSize: 20 }}>{Number(solarIrradiance).toFixed(0)}</Text>
+                    <Text> kWh/m²/yr</Text><br />
+                    {solarScore != null && (
+                      <Progress percent={Math.min(Number(solarScore), 100)} size="small"
+                        strokeColor={getScoreColor(Number(solarScore))} style={{ marginTop: 8 }} />
+                    )}
+                    <Tag color={Number(solarIrradiance) >= 1500 ? 'green' : 'orange'} style={{ marginTop: 6 }}>
+                      {Number(solarIrradiance) >= 1800 ? 'Excellent' : Number(solarIrradiance) >= 1400 ? 'Good' : 'Moderate'}
+                    </Tag>
+                  </>
+                ) : (
+                  <Text type="secondary">No data</Text>
+                )}
               </div>
             </Card>
           </Col>
@@ -130,11 +155,21 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
               <div style={{ textAlign: 'center' }}>
                 <EnvironmentOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
                 <Title level={4}>Wind Resource</Title>
-                <Text strong>{energy_assessment?.wind_data?.wind_zone}</Text><br />
-                <Text>Average wind speed: {energy_assessment?.wind_data?.average_speed} m/s</Text><br />
-                <Tag color={energy_assessment?.wind_data?.wind_potential === '高' ? 'green' : 'orange'}>
-                  {translateLevel(energy_assessment?.wind_data?.wind_potential)}
-                </Tag>
+                {windSpeed != null ? (
+                  <>
+                    <Text strong style={{ fontSize: 20 }}>{Number(windSpeed).toFixed(1)}</Text>
+                    <Text> m/s avg</Text><br />
+                    {windScore != null && (
+                      <Progress percent={Math.min(Number(windScore), 100)} size="small"
+                        strokeColor={getScoreColor(Number(windScore))} style={{ marginTop: 8 }} />
+                    )}
+                    <Tag color={Number(windSpeed) >= 6 ? 'green' : 'orange'} style={{ marginTop: 6 }}>
+                      {Number(windSpeed) >= 7 ? 'Excellent' : Number(windSpeed) >= 5 ? 'Good' : 'Moderate'}
+                    </Tag>
+                  </>
+                ) : (
+                  <Text type="secondary">No data</Text>
+                )}
               </div>
             </Card>
           </Col>
@@ -143,10 +178,23 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
               <div style={{ textAlign: 'center' }}>
                 <BulbOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
                 <Title level={4}>Renewable Potential</Title>
-                <Text strong>
-                  {energy_assessment?.renewable_potential?.total_renewable_potential?.annual_generation_mwh?.toFixed(0)} MWh/yr
-                </Text><br />
-                <Text>Coverage: {((energy_assessment?.storage_assessment?.renewable_coverage ?? 0) * 100).toFixed(1)}%</Text>
+                {renewableCoverage != null ? (
+                  <>
+                    <Text strong style={{ fontSize: 20 }}>
+                      {renewableCoverage > 1
+                        ? Number(renewableCoverage).toFixed(1)
+                        : (Number(renewableCoverage) * 100).toFixed(1)}
+                    </Text>
+                    <Text>% coverage</Text><br />
+                    {renewScore != null && (
+                      <Progress
+                        percent={Math.min(renewScore > 1 ? Number(renewScore) : Number(renewScore) * 100, 100)}
+                        size="small" strokeColor="#52c41a" style={{ marginTop: 8 }} />
+                    )}
+                  </>
+                ) : (
+                  <Text type="secondary">No data</Text>
+                )}
               </div>
             </Card>
           </Col>
@@ -220,7 +268,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                 <Card key={index} size="small" style={{ marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Text strong>{option.type}</Text>
-                    <Tag color={option.feasibility === '高' ? 'green' : 'orange'}>
+                    <Tag color={['high','高'].includes(option.feasibility) ? 'green' : 'orange'}>
                       {translateLevel(option.feasibility)}
                     </Tag>
                   </div>

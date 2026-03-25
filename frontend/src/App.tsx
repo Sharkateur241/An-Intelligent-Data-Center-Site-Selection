@@ -80,9 +80,13 @@ function MapClickHandler({
 }) {
   useMapEvents({
     click(e) {
+      // Leaflet can return lng outside [-180,180] when the map is panned past the antimeridian.
+      // Normalize it back to the canonical range before passing up.
+      const rawLng = e.latlng.lng;
+      const normLng = ((((rawLng + 180) % 360) + 360) % 360) - 180;
       onLocationSelect(
         parseFloat(e.latlng.lat.toFixed(6)),
-        parseFloat(e.latlng.lng.toFixed(6))
+        parseFloat(normLng.toFixed(6)),
       );
     },
   });
@@ -165,11 +169,10 @@ function DataSection({
 
   if (!data || typeof data !== "object") return null;
   const flat = Object.entries(data).filter(
-    ([, v]) => v !== null && v !== undefined && typeof v !== "object"
+    ([, v]) => v !== null && v !== undefined && typeof v !== "object",
   );
   if (flat.length === 0) return null;
-  const visibleRows =
-    maxRows && !expanded ? flat.slice(0, maxRows) : flat;
+  const visibleRows = maxRows && !expanded ? flat.slice(0, maxRows) : flat;
   const hiddenCount = maxRows ? Math.max(flat.length - maxRows, 0) : 0;
 
   return (
@@ -188,9 +191,7 @@ function DataSection({
       </div>
       {hiddenCount > 0 && (
         <button className="ds-toggle" onClick={() => setExpanded(!expanded)}>
-          {expanded
-            ? "Show less"
-            : `Show more (${hiddenCount} hidden)`}
+          {expanded ? "Show less" : `Show more (${hiddenCount} hidden)`}
         </button>
       )}
     </div>
@@ -255,7 +256,9 @@ export default function App() {
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
   const [showSticky, setShowSticky] = useState(false);
-  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'energy' | 'decision' | 'ai'>('overview');
+  const [activeDetailTab, setActiveDetailTab] = useState<
+    "overview" | "energy" | "decision" | "ai"
+  >("overview");
   const markerRef = useRef<L.Marker | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const scorePanelRef = useRef<HTMLDivElement>(null);
@@ -292,7 +295,7 @@ export default function App() {
             behavior: "smooth",
             block: "start",
           }),
-        100
+        100,
       );
     }
   }, [result]);
@@ -312,7 +315,7 @@ export default function App() {
     if (!result || !scorePanelRef.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => setShowSticky(!entry.isIntersecting),
-      { threshold: 0, rootMargin: "-58px 0px 0px 0px" }
+      { threshold: 0, rootMargin: "-58px 0px 0px 0px" },
     );
     observer.observe(scorePanelRef.current);
     return () => observer.disconnect();
@@ -326,7 +329,7 @@ export default function App() {
         const lng = parseFloat(pos.coords.longitude.toFixed(6));
         handleLocationSelect(lat, lng);
       },
-      () => setError("Geolocation denied or unavailable.")
+      () => setError("Geolocation denied or unavailable."),
     );
   };
 
@@ -453,11 +456,12 @@ export default function App() {
         ? result.promethee_mcgp_analysis.recommendations
         : null) ||
       (Array.isArray(
-        (result.promethee_mcgp_analysis as any)?.recommendation?.recommendations
+        (result.promethee_mcgp_analysis as any)?.recommendation
+          ?.recommendations,
       )
-        ? (result.promethee_mcgp_analysis as any).recommendation.recommendations.join(
-            "；"
-          )
+        ? (
+            result.promethee_mcgp_analysis as any
+          ).recommendation.recommendations.join("；")
         : (result.promethee_mcgp_analysis as any)?.recommendation
             ?.recommendations) ||
       (result.promethee_mcgp_analysis as any)?.recommendation;
@@ -495,10 +499,11 @@ export default function App() {
         <div className="hero-noise" />
         <div className="hero-glow" />
         <div className="hero-inner">
-          <div className="hero-chip">IDCSS Platform · v2.0</div>
+          <div className="hero-chip">IDCSS Platform </div>
           <h1 className="hero-h1">
             Intelligent Data Center Site Selection &amp; Energy Optimisation
-            <br />Based on <em>Google Earth Engine</em> and <em>AI Technology</em>
+            <br />
+            Based on <em>Google Earth Engine</em> and <em>AI Technology</em>
           </h1>
           <p className="hero-sub">
             Satellite imagery × Google Earth Engine × AI-powered
@@ -543,7 +548,7 @@ export default function App() {
                           onClick={() =>
                             handleLocationSelect(
                               clickedLocation.lat,
-                              clickedLocation.lng
+                              clickedLocation.lng,
                             )
                           }
                         >
@@ -554,7 +559,11 @@ export default function App() {
                   </Marker>
                 )}
               </MapContainer>
-              <button className="map-geo-btn" onClick={geoLocate} title="Use my location">
+              <button
+                className="map-geo-btn"
+                onClick={geoLocate}
+                title="Use my location"
+              >
                 ⊕ My Location
               </button>
             </div>
@@ -562,7 +571,10 @@ export default function App() {
               <div className="coord-bar">
                 <span className="coord-label">📍 Selected</span>
                 <code className="coord-code">
-                  {Math.abs(clickedLocation.lat)}° {clickedLocation.lat >= 0 ? "N" : "S"} &nbsp;/&nbsp; {Math.abs(clickedLocation.lng)}° {clickedLocation.lng >= 0 ? "E" : "W"}
+                  {Math.abs(clickedLocation.lat)}°{" "}
+                  {clickedLocation.lat >= 0 ? "N" : "S"} &nbsp;/&nbsp;{" "}
+                  {Math.abs(clickedLocation.lng)}°{" "}
+                  {clickedLocation.lng >= 0 ? "E" : "W"}
                 </code>
               </div>
             )}
@@ -671,7 +683,7 @@ export default function App() {
                   Multi-criteria evaluation across{" "}
                   {
                     Object.keys(result).filter(
-                      (k) => !k.startsWith("ai_") && k !== "location"
+                      (k) => !k.startsWith("ai_") && k !== "location",
                     ).length
                   }{" "}
                   dimensions using satellite data and AI reasoning.
@@ -707,8 +719,9 @@ export default function App() {
                 <div className="rec-meta">
                   <span className="rec-pill">PROMETHEE · Decision AI</span>
                   <span className="rec-pill">
-                    Radius {radius} m · Lat {latitude || result.location.latitude}
-                    ° · Lon {longitude || result.location.longitude}°
+                    Radius {radius} m · Lat{" "}
+                    {latitude || result.location.latitude}° · Lon{" "}
+                    {longitude || result.location.longitude}°
                   </span>
                 </div>
               </section>
@@ -718,14 +731,20 @@ export default function App() {
               <section className="panel alt-panel">
                 <div className="panel-head">
                   <span className="panel-icon">🧭</span>
-                  <span className="panel-title">Nearby Recommended Location</span>
+                  <span className="panel-title">
+                    Nearby Recommended Location
+                  </span>
                   <span className="panel-hint">Auto-search within 100 km</span>
                 </div>
                 {recLoading && (
-                  <div className="alt-body">Searching for better nearby sites…</div>
+                  <div className="alt-body">
+                    Searching for better nearby sites…
+                  </div>
                 )}
                 {recError && (
-                  <div className="err-box">⚠ Recommendation failed: {recError}</div>
+                  <div className="err-box">
+                    ⚠ Recommendation failed: {recError}
+                  </div>
                 )}
                 {recommendation && (
                   <div className="alt-body">
@@ -734,22 +753,24 @@ export default function App() {
                         <div className="alt-label">Best candidate</div>
                         <div className="alt-coord">
                           {recommendation.recommended_location.latitude.toFixed(
-                            4
+                            4,
                           )}
                           °,{" "}
                           {recommendation.recommended_location.longitude.toFixed(
-                            4
+                            4,
                           )}
                           °
                         </div>
                       </div>
                       <div className="alt-score">
-                        Score {recommendation.recommended_location.suitability_score}
+                        Score{" "}
+                        {recommendation.recommended_location.suitability_score}
                       </div>
                     </div>
                     <div className="alt-meta">
                       <span>
-                        Distance {recommendation.recommended_location.distance_km} km
+                        Distance{" "}
+                        {recommendation.recommended_location.distance_km} km
                       </span>
                       {recommendation.recommended_location.solar_zone && (
                         <span>
@@ -777,7 +798,7 @@ export default function App() {
                       onClick={() =>
                         handleLocationSelect(
                           recommendation.recommended_location.latitude,
-                          recommendation.recommended_location.longitude
+                          recommendation.recommended_location.longitude,
                         )
                       }
                     >
@@ -789,7 +810,10 @@ export default function App() {
             )}
 
             <div className="data-grid">
-              <div className="ds-card" style={{ "--accent": "#22d3a5", gridColumn: "1 / -1" } as any}>
+              <div
+                className="ds-card"
+                style={{ "--accent": "#22d3a5", gridColumn: "1 / -1" } as any}
+              >
                 <div className="ds-head">
                   <span className="ds-icon">🌍</span>
                   <span className="ds-title">Geographic Environment</span>
@@ -843,35 +867,63 @@ export default function App() {
             <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
               <section className="panel detail-panel">
                 <div className="result-tabs">
-                  {(["overview", "energy", "decision", "ai"] as const).map((tab) => {
-                    const labels: Record<string, string> = {
-                      overview: "📊 Overview",
-                      energy: "⚡ Energy",
-                      decision: "📐 Decision",
-                      ai: "🧠 AI Reasoning",
-                    };
-                    return (
-                      <button
-                        key={tab}
-                        className={`result-tab${activeDetailTab === tab ? " active" : ""}`}
-                        onClick={() => setActiveDetailTab(tab)}
-                      >
-                        {labels[tab]}
-                      </button>
-                    );
-                  })}
+                  {(["overview", "energy", "decision", "ai"] as const).map(
+                    (tab) => {
+                      const labels: Record<string, string> = {
+                        overview: "📊 Overview",
+                        energy: "⚡ Energy",
+                        decision: "📐 Decision",
+                        ai: "🧠 AI Reasoning",
+                      };
+                      return (
+                        <button
+                          key={tab}
+                          className={`result-tab${activeDetailTab === tab ? " active" : ""}`}
+                          onClick={() => setActiveDetailTab(tab)}
+                        >
+                          {labels[tab]}
+                        </button>
+                      );
+                    },
+                  )}
                 </div>
                 <div className="tab-content">
-                  {activeDetailTab === "overview" && <AnalysisResults data={result} />}
-                  {activeDetailTab === "energy" && <EnergyAssessment data={result} />}
-                  {activeDetailTab === "decision" && <DecisionAnalysis data={result} />}
+                  {activeDetailTab === "overview" && (
+                    <AnalysisResults data={result} />
+                  )}
+                  {activeDetailTab === "energy" && (
+                    <EnergyAssessment data={result} />
+                  )}
+                  {activeDetailTab === "decision" && (
+                    <DecisionAnalysis data={result} />
+                  )}
                   {activeDetailTab === "ai" && (
                     <div className="ai-list">
-                      <AICard icon="🛰" title="Multimodal Analysis" data={result.ai_multimodal_analysis} />
-                      <AICard icon="⚡" title="Energy AI Analysis" data={result.ai_energy_analysis} />
-                      <AICard icon="🔌" title="Power Supply AI" data={result.ai_power_supply_analysis} />
-                      <AICard icon="🔋" title="Energy Storage AI" data={result.ai_energy_storage_analysis} />
-                      <AICard icon="🧠" title="Decision AI" data={result.ai_decision_analysis} />
+                      <AICard
+                        icon="🛰"
+                        title="Multimodal Analysis"
+                        data={result.ai_multimodal_analysis}
+                      />
+                      <AICard
+                        icon="⚡"
+                        title="Energy AI Analysis"
+                        data={result.ai_energy_analysis}
+                      />
+                      <AICard
+                        icon="🔌"
+                        title="Power Supply AI"
+                        data={result.ai_power_supply_analysis}
+                      />
+                      <AICard
+                        icon="🔋"
+                        title="Energy Storage AI"
+                        data={result.ai_energy_storage_analysis}
+                      />
+                      <AICard
+                        icon="🧠"
+                        title="Decision AI"
+                        data={result.ai_decision_analysis}
+                      />
                     </div>
                   )}
                 </div>
@@ -884,13 +936,19 @@ export default function App() {
       {result && overallScore !== null && (
         <div className={`sticky-bar${showSticky ? " visible" : ""}`}>
           <span className="sticky-loc">
-            {result.location.latitude.toFixed(4)}°, {result.location.longitude.toFixed(4)}°
+            {result.location.latitude.toFixed(4)}°,{" "}
+            {result.location.longitude.toFixed(4)}°
           </span>
           <div className="sticky-score">
             <span
               className="sticky-score-val"
               style={{
-                color: Number(overallScore) >= 80 ? "#22d3a5" : Number(overallScore) >= 65 ? "#f59e0b" : "#ef4444",
+                color:
+                  Number(overallScore) >= 80
+                    ? "#22d3a5"
+                    : Number(overallScore) >= 65
+                      ? "#f59e0b"
+                      : "#ef4444",
               }}
             >
               {Math.round(Number(overallScore))}

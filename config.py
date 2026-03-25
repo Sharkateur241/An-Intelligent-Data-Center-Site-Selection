@@ -34,13 +34,16 @@ class Config:
         # API configuration
         # API key must come from environment; no hardcoded default
         self.OPENAI_API_KEY = get_config('OPENAI_API_KEY', '')
-        self.OPENAI_BASE_URL = get_config('OPENAI_BASE_URL', 'https://api.gptplus5.com/v1')
+        # Default to the official OpenAI endpoint.
+        # Override via OPENAI_BASE_URL env var for custom deployments or proxies.
+        self.OPENAI_BASE_URL = get_config('OPENAI_BASE_URL', 'https://api.openai.com/v1')
         
-        # Proxy configuration
-        self.HTTP_PROXY = get_config('HTTP_PROXY', 'http://127.0.0.1:1082')
-        self.HTTPS_PROXY = get_config('HTTPS_PROXY', 'http://127.0.0.1:1082')
-        self.http_proxy = get_config('http_proxy', 'http://127.0.0.1:1082')
-        self.https_proxy = get_config('https_proxy', 'http://127.0.0.1:1082')
+        # Proxy configuration — defaults to empty string (no proxy).
+        # Set HTTP_PROXY / HTTPS_PROXY in .env or shell to enable a proxy.
+        self.HTTP_PROXY = get_config('HTTP_PROXY', '')
+        self.HTTPS_PROXY = get_config('HTTPS_PROXY', '')
+        self.http_proxy = get_config('http_proxy', '')
+        self.https_proxy = get_config('https_proxy', '')
         
         # GEE configuration
         self.GEE_PROJECT_ID = get_config('GEE_PROJECT_ID', 'data-center-location-analysis')
@@ -55,11 +58,13 @@ class Config:
         self.LOG_LEVEL = get_config('LOG_LEVEL', 'INFO')
     
     def setup_proxy(self):
-        """Set proxy environment variables"""
-        os.environ['HTTP_PROXY'] = self.HTTP_PROXY
-        os.environ['HTTPS_PROXY'] = self.HTTPS_PROXY
-        os.environ['http_proxy'] = self.http_proxy
-        os.environ['https_proxy'] = self.https_proxy
+        """Set proxy environment variables only when a value is configured."""
+        if self.HTTP_PROXY:
+            os.environ['HTTP_PROXY'] = self.HTTP_PROXY
+            os.environ['http_proxy'] = self.http_proxy
+        if self.HTTPS_PROXY:
+            os.environ['HTTPS_PROXY'] = self.HTTPS_PROXY
+            os.environ['https_proxy'] = self.https_proxy
     
     def setup_openai_key(self):
         """Set OpenAI API key"""

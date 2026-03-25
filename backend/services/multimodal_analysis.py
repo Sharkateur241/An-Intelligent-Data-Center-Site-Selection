@@ -6,18 +6,18 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 
 class MultimodalAnalysisService:
     """Multimodal analysis service"""
-    
+
     def __init__(self):
         """Initialize multimodal analysis service"""
         # Use project-level API settings; do not force a proxy
         api_key = os.environ.get('OPENAI_API_KEY', '')
         base_url = os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1')
-        self.client = OpenAI(base_url=base_url, api_key=api_key)
+        self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
         self.model = os.environ.get("OPENAI_MULTIMODAL_MODEL", "gpt-4o-2024-08-06")
         # Derive provider label from base_url
         self.api_provider = "OpenAI" if "openai" in base_url else "GPTPlus5"
@@ -106,7 +106,7 @@ Important: plain text only; do not return JSON or code blocks.
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    response = self.client.chat.completions.create(
+                    response = await self.client.chat.completions.create(
                         model=self.model,
                         messages=[
                             {
@@ -265,7 +265,7 @@ Return analysis as JSON:
 """
             
             # Text-only analysis, no image included here
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -311,25 +311,8 @@ Return analysis as JSON:
             }
     
     def _get_city_name_from_coords(self, lat: float, lon: float) -> str:
-        """Get city name from coordinates"""
-        city_mapping = {
-            (30.2741, 120.1551): "Hangzhou",
-            (39.9042, 116.4074): "Beijing", 
-            (31.2304, 121.4737): "Shanghai",
-            (22.3193, 114.1694): "Hong Kong",
-            (23.1291, 113.2644): "Guangzhou",
-            (29.5647, 106.5507): "Chongqing",
-            (30.5728, 104.0668): "Chengdu",
-            (36.0611, 120.3785): "Qingdao",
-            (38.0428, 114.5149): "Shijiazhuang",
-            (34.3416, 108.9398): "Xi'an"
-        }
-        
-        for (city_lat, city_lon), city_name in city_mapping.items():
-            if abs(lat - city_lat) < 0.5 and abs(lon - city_lon) < 0.5:
-                return city_name
-        
-        return f"Location({lat:.4f}, {lon:.4f})"
+        """Return coordinate string — no hardcoded city lookup."""
+        return f"{lat:.4f}°, {lon:.4f}°"
     
     def _get_region_info(self, lat: float, lon: float) -> str:
         """Get region info from coordinates"""
@@ -397,7 +380,7 @@ Return analysis as JSON:
         
         for model in models_to_try:
             try:
-                response = self.client.chat.completions.create(
+                response = await self.client.chat.completions.create(
                     model=model,
                     messages=[
                         {"role": "user", "content": "ping"}

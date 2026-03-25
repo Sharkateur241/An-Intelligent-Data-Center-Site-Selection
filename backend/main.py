@@ -5,7 +5,7 @@ Data Center Intelligent Site Selection and Energy Optimization System - Backend 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uvicorn
 import os
@@ -39,23 +39,32 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Configure CORS — origins read from CORS_ALLOW_ORIGINS env var (comma-separated).
+# allow_origins=["*"] is invalid with allow_credentials=True per the CORS spec.
+_cors_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000")
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Should be set to specific domain in production
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Shared real-data service (in-memory cache — must be module-level singleton)
+from services.real_data_service import RealDataService as _RDS
+_real_data_service = _RDS()
+
 # Initialize services
 satellite_service = SatelliteService()
 image_service = ImageAnalysisService()
 energy_service = EnergyAssessmentService()
+energy_service.real_data_service = _real_data_service  # share cache
 decision_service = DecisionAnalysisService()
 power_supply_service = PowerSupplyAnalysisService()
 energy_storage_service = EnergyStorageAnalysisService()
 promethee_mcgp_service = PROMETHEEMCGP()
+promethee_mcgp_service.real_data_service = _real_data_service  # share cache
 multimodal_service = MultimodalAnalysisService()
 
 # Initialize AI analysis services
@@ -74,8 +83,8 @@ heat_utilization_service = HeatUtilizationAnalysisService()
 # Data models
 class LocationRequest(BaseModel):
     """Location request model"""
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
     radius: float = 1000  # meters
     city_name: Optional[str] = None
 
@@ -90,7 +99,13 @@ class AnalysisResult(BaseModel):
     power_supply_analysis: Dict[str, Any]
     energy_storage_analysis: Dict[str, Any]
     promethee_mcgp_analysis: Dict[str, Any]
-    
+
+    # Structured energy data from real APIs (feeds EnergyAssessment.tsx)
+    structured_energy: Optional[Dict[str, Any]] = None
+
+    # Data source attribution
+    data_sources: Optional[Dict[str, str]] = None
+
     # AI analysis results
     ai_multimodal_analysis: Optional[Dict[str, Any]] = None
     ai_energy_analysis: Optional[Dict[str, Any]] = None
@@ -105,8 +120,8 @@ class CityAnalysisRequest(BaseModel):
 
 class LocationRecommendationRequest(BaseModel):
     """Request model for nearby location recommendation"""
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
     search_radius_km: float = 100
     samples: int = 16
 
@@ -145,76 +160,44 @@ def _haversine_offset(lat: float, lon: float, distance_km: float, bearing_deg: f
     return {"lat": math.degrees(lat2), "lon": (math.degrees(lon2) + 540) % 360 - 180}
 
 
-async def _quick_geo_snapshot(lat: float, lon: float) -> Dict[str, Any]:
-    """
-    Lightweight geographic snapshot mirroring analyze_geographic_environment but
-    without heavy satellite fetch, for rapid nearby screening.
-    """
-    # Elevation heuristic
-    if lat > 40:
-        base_elevation = 1000 + (lat - 40) * 200
-    elif lat > 30:
-        base_elevation = 200 + (lat - 30) * 50
-    else:
-        base_elevation = 50 + (lat - 20) * 20
-    if lon > 100:
-        base_elevation += 500
-    elif lon < 110:
-        base_elevation -= 100
-    # Deterministic estimate: midpoint of the ±100 m residual uncertainty band
-    elevation = int(base_elevation + 20)
-
-    # Water proximity heuristic
-    water_sources = []
-    if lon > 110:
-        water_sources.append({"type": "河流", "distance_km": 5})
-    if lat > 35:
-        water_sources.append({"type": "地下水", "distance_km": 10})
-    water_tag = "丰富" if water_sources else "一般"
-
-    # Hazards
-    hazards = []
-    if lat > 40:
-        hazards.append("低温冻害")
-    if 20 <= lat <= 30 and 110 <= lon <= 120:
-        hazards.append("台风")
-    if 30 <= lat <= 40:
-        hazards.append("洪涝")
-    if lon > 100:
-        hazards.append("干旱")
-
-    return {
-        "elevation": elevation,
-        "water": water_tag,
-        "hazards": hazards
-    }
-
-
 def _score_from_potential(label: str) -> float:
-    if label == "高":
-        return 30
-    if label == "中等":
-        return 20
-    if label == "低":
-        return 8
-    return 5
+    """Map English potential label to score contribution."""
+    return {"high": 30.0, "moderate": 20.0, "low": 8.0}.get(
+        (label or "").lower(), 5.0
+    )
 
 
 async def _score_candidate(lat: float, lon: float) -> Dict[str, Any]:
-    """Compute a lightweight suitability score for a candidate point."""
-    solar = await energy_service._get_solar_data(lat, lon)  # type: ignore
-    wind = await energy_service._get_wind_data(lat, lon)  # type: ignore
-    grid = await energy_service._assess_grid_capacity(lat, lon)  # type: ignore
-    geo = await _quick_geo_snapshot(lat, lon)
+    """Suitability score using real data from the shared RealDataService instance."""
+    rds = _real_data_service
+    solar = await energy_service.get_solar_data(lat, lon)
+    wind  = await energy_service.get_wind_data(lat, lon)
+    grid  = await energy_service.assess_grid_capacity(lat, lon)
+    try:
+        raw = await rds.get_all(lat, lon, radius_m=5000)
+        hazard_data = raw.get("hazards", {})
+        water_data  = raw.get("water", {})
+    except Exception:
+        hazard_data = {}
+        water_data  = {}
+
+    hazards = []
+    if hazard_data.get("flood_risk") in ("MEDIUM", "HIGH"):
+        hazards.append(f"Flood: {hazard_data['flood_risk']}")
+    if hazard_data.get("seismic_risk") in ("MEDIUM", "HIGH"):
+        hazards.append(f"Seismic: {hazard_data['seismic_risk']}")
+    if hazard_data.get("cyclone_risk") in ("MEDIUM", "HIGH"):
+        hazards.append(f"Cyclone: {hazard_data['cyclone_risk']}")
+
+    water_avail = water_data.get("water_availability", "MODERATE")
 
     score = (
-        _score_from_potential(solar.get("solar_potential")) +
-        _score_from_potential(wind.get("wind_potential")) +
-        min(grid.get("available_capacity", 0), 200) / 4  # cap and scale
+        _score_from_potential(solar.get("solar_potential"))
+        + _score_from_potential(wind.get("wind_potential"))
+        + min(grid.get("available_capacity", 0), 200) / 4
     )
-    # Penalties
-    score -= len(geo["hazards"]) * 6
-    if geo["water"] == "丰富":
+    score -= len(hazards) * 6
+    if water_avail == "ABUNDANT":
         score += 5
 
     return {
@@ -223,8 +206,8 @@ async def _score_candidate(lat: float, lon: float) -> Dict[str, Any]:
         "suitability_score": round(score, 2),
         "solar_zone": solar.get("solar_zone"),
         "wind_zone": wind.get("wind_zone"),
-        "water": geo.get("water"),
-        "hazards": geo.get("hazards"),
+        "water": water_avail,
+        "hazards": hazards,
         "grid_capacity": grid.get("available_capacity"),
     }
 
@@ -249,13 +232,25 @@ async def analyze_location(request: LocationRequest):
     Analyze data center site feasibility for a given location - AI enhanced version
     """
     try:
-        # 1. Fetch satellite imagery
-        satellite_data = await satellite_service.get_satellite_image(
-            request.latitude, 
-            request.longitude, 
-            radius=request.radius
-        )
-        
+        # 1. Fetch satellite imagery (non-fatal — analysis continues without image)
+        try:
+            satellite_data = await satellite_service.get_satellite_image(
+                request.latitude,
+                request.longitude,
+                radius=request.radius
+            )
+        except Exception as _sat_err:
+            print(f"Satellite fetch failed (non-fatal): {_sat_err}")
+            satellite_data = {
+                "url": None,
+                "metadata": {
+                    "center": [request.latitude, request.longitude],
+                    "radius": request.radius,
+                    "error": str(_sat_err),
+                    "gee_available": False,
+                },
+            }
+
         # 2. Run AI analysis (optimized - serial execution to avoid API rate limiting)
         print("🔄 Starting AI analysis...")
         
@@ -293,12 +288,13 @@ async def analyze_location(request: LocationRequest):
                     request.latitude, request.longitude, request.city_name,
                     ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision
                 ),
-                timeout=60  # 60 second timeout
+                timeout=300  # 5-minute timeout — PROMETHEE fetches 9 × 8 real API calls
             )
-            print("✅ Decision analysis completed")
+            print("✅ PROMETHEE-MCGP analysis completed")
         except Exception as e:
-            print(f"❌ Decision analysis failed: {e}")
-            promethee_mcgp_analysis = {"success": False, "error": str(e)}
+            err_msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+            print(f"❌ PROMETHEE-MCGP analysis failed: {err_msg}")
+            promethee_mcgp_analysis = {"success": False, "error": err_msg}
         
         # Set results variable for compatibility
         results = [ai_multimodal, ai_energy, ai_power_supply, ai_energy_storage, ai_decision, promethee_mcgp_analysis]
@@ -336,7 +332,7 @@ async def analyze_location(request: LocationRequest):
         promethee_mcgp_analysis = results[5] if not isinstance(results[5], Exception) else {"error": str(results[5])}
         
         # Fetch basic land use analysis (including area calculation)
-        image_service = ImageAnalysisService()
+        # Uses the module-level image_service singleton (no local re-instantiation).
         try:
             print("🔄 Starting land use analysis...")
             land_analysis = await image_service.analyze_land_use(satellite_data)
@@ -349,10 +345,11 @@ async def analyze_location(request: LocationRequest):
         
         # Use AI analysis results as primary results
         energy_assessment = ai_energy if ai_energy.get("success") else {}
+        decision_recommendation = ai_decision if ai_decision.get("success") else {}
+        # AI result preferred over any legacy result for power/storage
         power_supply_analysis = ai_power_supply if ai_power_supply.get("success") else {}
         energy_storage_analysis = ai_energy_storage if ai_energy_storage.get("success") else {}
-        decision_recommendation = ai_decision if ai_decision.get("success") else {}
-        
+
         # Other analyses (based on AI results)
         heat_utilization = await energy_service.analyze_heat_utilization(
             request.latitude, request.longitude, land_analysis
@@ -360,8 +357,6 @@ async def analyze_location(request: LocationRequest):
         geographic_environment = await energy_service.analyze_geographic_environment(
             request.latitude, request.longitude, request.radius
         )
-        power_supply_analysis = ai_power_supply if ai_power_supply.get("success") else {}
-        energy_storage_analysis = ai_energy_storage if ai_energy_storage.get("success") else {}
         
         # Ensure geographic_environment includes satellite image info
         if satellite_data and satellite_data.get("url"):
@@ -369,7 +364,27 @@ async def analyze_location(request: LocationRequest):
                 "satellite_image_url": satellite_data["url"],
                 "satellite_image_metadata": satellite_data.get("metadata", {})
             })
-        
+
+        # Structured energy from real APIs (feeds EnergyAssessment.tsx)
+        try:
+            structured_energy = await energy_service.assess_energy_resources(
+                request.latitude, request.longitude, land_analysis
+            )
+        except Exception as _e:
+            print(f"structured_energy fetch failed (non-fatal): {_e}")
+            structured_energy = {"error": str(_e)}
+
+        data_sources = {
+            "solar": "NASA POWER Climatology API",
+            "wind": "Open-Meteo ERA5 Reanalysis 2000-2020",
+            "elevation": "Open-Elevation / SRTM",
+            "land_cover": "ESA WorldCover 2021 10m",
+            "grid": "OpenStreetMap Overpass API",
+            "climate": "Open-Meteo Historical API 2010-2020",
+            "hazards": "USGS Seismic Hazard + Open-Meteo precipitation proxy",
+            "water": "OpenStreetMap waterways + Open-Meteo",
+        }
+
         return AnalysisResult(
             location={"latitude": request.latitude, "longitude": request.longitude},
             land_analysis=land_analysis,
@@ -380,6 +395,8 @@ async def analyze_location(request: LocationRequest):
             power_supply_analysis=power_supply_analysis,
             energy_storage_analysis=energy_storage_analysis,
             promethee_mcgp_analysis=promethee_mcgp_analysis,
+            structured_energy=structured_energy,
+            data_sources=data_sources,
             # Include AI analysis results
             ai_multimodal_analysis=ai_multimodal,
             ai_energy_analysis=ai_energy,
@@ -422,8 +439,10 @@ async def recommend_location(request: LocationRecommendationRequest):
                     water=scored.get("water"),
                     hazards=scored.get("hazards"),
                     rationale=(
-                        f"太阳能{scored.get('solar_zone', '')}、风区{scored.get('wind_zone', '')}，"
-                        f"电网容量约{scored.get('grid_capacity', '未知')}MW，水资源{scored.get('water', '一般')}"
+                        f"Solar: {scored.get('solar_zone', 'N/A')}; "
+                        f"Wind: {scored.get('wind_zone', 'N/A')}; "
+                        f"Grid capacity: {scored.get('grid_capacity', 'N/A')} MW; "
+                        f"Water: {scored.get('water', 'N/A')}"
                     )
                 )
             )

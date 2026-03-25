@@ -27,8 +27,12 @@ class SatelliteService:
             import urllib3
             import os
 
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            os.environ['PYTHONHTTPSVERIFY'] = '0'
+            # Only disable SSL verification when explicitly opted in via env var.
+            if os.getenv('GEE_DISABLE_SSL_VERIFY', 'false').lower() == 'true':
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                os.environ['PYTHONHTTPSVERIFY'] = '0'
+                print("WARNING: SSL certificate verification is DISABLED (GEE_DISABLE_SSL_VERIFY=true). "
+                      "Do not use this in production.")
 
             # Proxy setup: only set if actually provided
             http_proxy = os.getenv('HTTP_PROXY') or os.getenv('http_proxy')
@@ -282,7 +286,10 @@ class SatelliteService:
             
             # Since GEE Map API requires complex authentication, use static image API
             point = ee.Geometry.Point([lon, lat])
-            region = point.buffer(20000)  # 20 km radius
+            # Fixed 2 km view radius — gives a tight, detailed Landsat frame
+            # centred on the selected site regardless of analysis radius.
+            view_radius = 2000
+            region = point.buffer(view_radius)
             
             # Use Dynamic World dataset - 10m resolution, updated daily
             print("🔄 Using Dynamic World dataset to retrieve land use data...")
@@ -305,7 +312,8 @@ class SatelliteService:
             
             if not has_landsat:
                 print("No Landsat data available for this area, trying Dynamic World")
-                # Fallback: use Dynamic World
+                # Fallback: use Dynamic World (will produce a visualized RGB image via .visualize())
+                is_dynamic_world = True
                 dw_collection = (ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
                                .filterBounds(region)
                                .filterDate('2024-01-01', '2024-12-31')
@@ -353,40 +361,59 @@ class SatelliteService:
             else:
                 # Use Landsat image (primary option)
                 # image was already retrieved above
+                is_dynamic_world = False
                 print(f"Landsat image info: {image_info}")
-                
-                # Use raw RGB bands without preprocessing
-                rgb_image = image.select(['SR_B4', 'SR_B3', 'SR_B2'])
-                print("✅ GEE image selection successful")
+
+                # Apply Landsat Collection 2 Level-2 surface-reflectance scale factors
+                # so that visualization min/max are in real reflectance units [0,1].
+                # Formula: reflectance = DN × 0.0000275 − 0.2
+                rgb_image = (image
+                             .select(['SR_B4', 'SR_B3', 'SR_B2'])
+                             .multiply(0.0000275)
+                             .add(-0.2)
+                             .clamp(0, 1))
+                print("✅ GEE image selection + reflectance scaling successful")
             
-            # Dynamically adjust image size and zoom level based on radius
+            # Dynamically adjust image size and zoom level based on radius.
+            # Larger pixel count + tighter region = sharper-looking image.
             if radius <= 1000:
-                dimensions = 400
-                zoom_level = 15
+                dimensions = 1024
+                zoom_level = 16
             elif radius <= 2000:
-                dimensions = 512
-                zoom_level = 14
+                dimensions = 1024
+                zoom_level = 15
             elif radius <= 5000:
-                dimensions = 600
-                zoom_level = 13
+                dimensions = 1024
+                zoom_level = 14
             else:
-                dimensions = 800
-                zoom_level = 12
-            
+                dimensions = 1024
+                zoom_level = 13
+
             # Use GEE static image API - dynamically adjusted based on radius
             try:
                 # Ensure rgb_image is in the correct format
                 print(f"🔍 RGB image bands: {rgb_image.bandNames().getInfo()}")
-                
-                # Generate GEE image URL - using correct parameters
-                # Use original dimensions for better analysis quality
-                image_url = rgb_image.getThumbURL({
+
+                # Generate GEE image URL.
+                # For Dynamic World the image is already a visualized RGB (no named bands),
+                # so we must NOT pass a 'bands' key.  For Landsat we specify the RGB bands
+                # together with calibrated min/max/gamma for a natural-colour appearance.
+                # Landsat C02 L2 surface-reflectance DN range: ~7000 (dark) – 40000 (bright).
+                # gamma=1.4 brightens mid-tones for better visual contrast.
+                thumb_params: dict = {
                     'region': region,
                     'dimensions': dimensions,
                     'format': 'png',
-                    'bands': ['SR_B4', 'SR_B3', 'SR_B2']
-                    # Omit crs parameter, let GEE handle automatically
-                })
+                }
+                if not is_dynamic_world:
+                    thumb_params['bands'] = ['SR_B4', 'SR_B3', 'SR_B2']
+                    # Image is already in real reflectance [0,1] after scale+offset.
+                    # Typical land surfaces: 0.02 (dark water) – 0.35 (bare soil/urban).
+                    # gamma=1.5 brightens mid-tones for a vivid, sharp natural-colour look.
+                    thumb_params['min'] = 0.02
+                    thumb_params['max'] = 0.35
+                    thumb_params['gamma'] = 1.5
+                image_url = rgb_image.getThumbURL(thumb_params)
                 
                 print(f"GEE original URL: {image_url}")
                 
@@ -736,16 +763,21 @@ class SatelliteService:
         Returns:
             Dictionary containing latitude and longitude
         """
-        # City coordinate database
-        city_coords = {
-            "Beijing":     {"latitude": 39.9042, "longitude": 116.4074},
-            "Shanghai":    {"latitude": 31.2304, "longitude": 121.4737},
-            "Shenzhen":    {"latitude": 22.5431, "longitude": 114.0579},
-            "Hangzhou":    {"latitude": 30.2741, "longitude": 120.1551},
-            "Zhongwei":    {"latitude": 37.5149, "longitude": 105.1967},
-            "Guiyang":     {"latitude": 26.6470, "longitude": 106.6302},
-            "Guangzhou":   {"latitude": 23.1291, "longitude": 113.2644},
-            "Lanzhou":     {"latitude": 36.0611, "longitude": 103.8343}
-        }
-        
-        return city_coords.get(city_name)
+        # Geocode the city name using OSM Nominatim (free, no API key required)
+        import aiohttp
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": city_name, "format": "json", "limit": 1}
+        headers = {"User-Agent": "DataCenterSiteSelection/1.0"}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, headers=headers,
+                                       timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    results = await resp.json()
+            if results:
+                return {
+                    "latitude": float(results[0]["lat"]),
+                    "longitude": float(results[0]["lon"]),
+                }
+        except Exception as e:
+            print(f"Nominatim geocoding failed for '{city_name}': {e}")
+        return None

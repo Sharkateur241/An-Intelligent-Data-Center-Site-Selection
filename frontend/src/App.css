@@ -909,9 +909,10 @@ body {
 
 .geo-image {
   width: 100%;
-  max-height: 520px;
-  object-fit: cover;
+  /* Show the full satellite image without cropping — height adjusts to aspect ratio */
+  object-fit: contain;
   display: block;
+  background: #000;
   transition: transform 0.4s ease;
 }
 .geo-image:hover {

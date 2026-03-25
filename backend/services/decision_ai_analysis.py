@@ -5,18 +5,18 @@ Decision analysis AI service - uses OpenAI SDK for intelligent decision analysis
 import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 
 class DecisionAIAnalysisService:
     """Decision analysis AI service"""
-    
+
     def __init__(self):
         """Initialize decision analysis AI service"""
         # Use project-level API key (proxy picked up from env if provided)
         api_key = os.getenv('OPENAI_API_KEY')
-        
-        self.client = OpenAI(
+
+        self.client = AsyncOpenAI(
             base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             api_key=api_key
         )
@@ -62,7 +62,7 @@ Please analyze this satellite image and deliver a comprehensive decision assessm
    - Identify key success factors
    - Provide implementation suggestions
 
-Please provide detailed analysis and specific recommendations; respond in Chinese.
+Please provide detailed analysis and specific recommendations in English.
 """
     
     async def analyze_location_ai(self, satellite_data: Dict[str, Any], 
@@ -83,12 +83,9 @@ Please provide detailed analysis and specific recommendations; respond in Chines
         """
         try:
             image_url = satellite_data.get("url") or satellite_data.get("image_url", "")
+            # image_url may be None when satellite fetch failed — proceed text-only
             if not image_url:
-                return {
-                    "success": False,
-                    "error": "无法获取卫星图像URL",
-                    "timestamp": datetime.now().isoformat()
-                }
+                image_url = None  # handled below in _call_ai_analysis
             
             # Get geographical metadata
             metadata = satellite_data.get("metadata", {})
@@ -108,7 +105,7 @@ Please provide detailed analysis and specific recommendations; respond in Chines
             ai_result = await self._call_ai_analysis(image_url, enhanced_prompt)
             
             if ai_result["success"]:
-                ai_result["analysis_type"] = "AI决策分析"
+                ai_result["analysis_type"] = "AI Decision Analysis"
                 ai_result["location_info"] = location_info
                 ai_result["gee_metadata"] = metadata
                 if land_analysis:
@@ -121,7 +118,7 @@ Please provide detailed analysis and specific recommendations; respond in Chines
         except Exception as e:
             return {
                 "success": False,
-                "error": f"AI决策分析失败: {str(e)}",
+                "error": f"AI decision analysis failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
     
@@ -139,7 +136,7 @@ Please provide detailed analysis and specific recommendations; respond in Chines
         context = f"""
 Geolocation information：
 - coordinate: {location_info.get('center', [])}
-- analysis radius: {location_info.get('radius', 0)}米
+- analysis radius: {location_info.get('radius', 0)} m
 - data source: {location_info.get('data_source', 'Unknown')}
 - resolution: {location_info.get('resolution', 'Unknown')}
 """
@@ -148,7 +145,7 @@ Geolocation information：
         if land_analysis:
             context += f"""
 Land use analysis results：
-- total area: {land_analysis.get('total_area', 'Unknown')}平方米
+- total area: {land_analysis.get('total_area', 'Unknown')} m²
 - land use distribution: {land_analysis.get('land_use_distribution', {})}
 - suitability level: {land_analysis.get('empty_land_analysis', {}).get('suitability_level', 'Unknown')}
 """
@@ -169,38 +166,35 @@ Energy assessment results：
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
         """Calling AI Analysis API"""
         try:
-            # Using the OpenAI official library to make API calls
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
+            # Build message content — include image only when URL is available
+            if image_url:
+                content = [
+                    {"type": "text", "text": prompt},
                     {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_url,
-                                    "detail": "high"  # Use low to reduce context length
-                                }
-                            }
-                        ]
+                        "type": "image_url",
+                        "image_url": {"url": image_url, "detail": "high"}
                     }
-                ],
+                ]
+            else:
+                content = [{"type": "text", "text": prompt}]
+
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": content}],
                 max_tokens=8000,
                 temperature=0.3,
-                timeout=180  # 2-minute timeout
+                timeout=180
             )
-            
+
             analysis_text = response.choices[0].message.content
-            
+
             return {
                 "success": True,
                 "analysis": analysis_text,
                 "model": self.model,
                 "timestamp": datetime.now().isoformat(),
                 "image_url": image_url,
-                "api_provider": "GPTPlus5"
+                "api_provider": "OpenAI",
             }
                 
         except Exception as e:

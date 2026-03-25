@@ -76,8 +76,8 @@ class PowerSupplyAnalysisService:
         try:
             # Get regional characteristics
             region_type = self._get_region_type(lat, lon)
-            solar_potential = self._calculate_solar_potential(lat, lon)
-            wind_potential = self._calculate_wind_potential(lat, lon)
+            solar_potential = await self._calculate_solar_potential(lat, lon)
+            wind_potential = await self._calculate_wind_potential(lat, lon)
             water_resources = self._assess_water_resources(lat, lon)
             
             # Analyze various power supply options
@@ -165,67 +165,17 @@ class PowerSupplyAnalysisService:
         else:
             return "Other"
     
-    def _calculate_solar_potential(self, lat: float, lon: float) -> float:
-        """Calculate solar energy potential"""
-        # Base irradiance based on latitude
-        base_irradiance = 1000 + (90 - abs(lat)) * 20
-        
-        # Longitude adjustment
-        if lon > 100:
-            base_irradiance += 200
-        elif lon < 110:
-            base_irradiance -= 100
-        
-        # City-specific adjustments
-        city_adjustments = {
-            (39.9042, 116.4074): 1500,  # Beijing
-            (31.2304, 121.4737): 1200,  # Shanghai
-            (22.5431, 114.0579): 1300,  # Shenzhen
-            (30.2741, 120.1551): 1400,  # Hangzhou
-            (37.5149, 105.1967): 2000,  # Zhongwei
-            (26.647,  106.6302): 1200,  # Guiyang
-        }
-        
-        min_distance = float('inf')
-        closest_irradiance = base_irradiance
-        for (city_lat, city_lon), irradiance in city_adjustments.items():
-            distance = ((lat - city_lat) ** 2 + (lon - city_lon) ** 2) ** 0.5
-            if distance < min_distance:
-                min_distance = distance
-                closest_irradiance = irradiance
-        
-        return closest_irradiance
+    async def _calculate_solar_potential(self, lat: float, lon: float) -> float:
+        """Solar irradiance (kWh/m²/yr) from NASA POWER — no hardcoded values."""
+        from .real_data_service import RealDataService
+        raw = await RealDataService().get_solar_irradiance(lat, lon)
+        return raw["annual_irradiance_kwh_m2"]
     
-    def _calculate_wind_potential(self, lat: float, lon: float) -> float:
-        """Calculate wind energy potential"""
-        # Base wind speed based on latitude
-        base_wind = 3.0 + (90 - abs(lat)) * 0.1
-        
-        # Longitude adjustment
-        if lon > 100:
-            base_wind += 1.0
-        elif lon < 110:
-            base_wind -= 0.5
-        
-        # City-specific adjustments
-        city_adjustments = {
-            (39.9042, 116.4074): 4.0,  # Beijing
-            (31.2304, 121.4737): 3.5,  # Shanghai
-            (22.5431, 114.0579): 4.5,  # Shenzhen
-            (30.2741, 120.1551): 3.8,  # Hangzhou
-            (37.5149, 105.1967): 5.5,  # Zhongwei
-            (26.647,  106.6302): 3.2,  # Guiyang
-        }
-        
-        min_distance = float('inf')
-        closest_wind = base_wind
-        for (city_lat, city_lon), wind in city_adjustments.items():
-            distance = ((lat - city_lat) ** 2 + (lon - city_lon) ** 2) ** 0.5
-            if distance < min_distance:
-                min_distance = distance
-                closest_wind = wind
-        
-        return closest_wind
+    async def _calculate_wind_potential(self, lat: float, lon: float) -> float:
+        """Mean wind speed (m/s at 10 m) from Open-Meteo ERA5 — no hardcoded values."""
+        from .real_data_service import RealDataService
+        raw = await RealDataService().get_wind_speed(lat, lon)
+        return raw["annual_mean_ms"]
     
     def _assess_water_resources(self, lat: float, lon: float) -> float:
         """Assess water resource abundance"""

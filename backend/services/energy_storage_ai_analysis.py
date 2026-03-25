@@ -5,18 +5,17 @@ Energy storage layout AI analysis service - intelligent storage layout analysis 
 import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 
 class EnergyStorageAIAnalysisService:
     """Energy storage layout AI analysis service class"""
-    
+
     def __init__(self):
         """Initialize energy storage layout AI analysis service"""
-        # Configure proxy        
-        self.client = OpenAI(
+        self.client = AsyncOpenAI(
             base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
-            api_key = os.environ.get('OPENAI_API_KEY')
+            api_key=os.environ.get('OPENAI_API_KEY')
         )
         self.model = "gpt-4o-2024-08-06"
         
@@ -143,8 +142,8 @@ Please use this information for a more accurate storage layout analysis.
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
         """Call AI analysis API"""
         try:
-            # Call API using the official OpenAI SDK
-            response = self.client.chat.completions.create(
+            # Call API using AsyncOpenAI to avoid blocking the event loop
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {

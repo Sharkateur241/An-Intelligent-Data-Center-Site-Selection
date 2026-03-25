@@ -5,24 +5,18 @@ Energy resource AI analysis service - intelligent energy assessment using the Op
 import asyncio
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from config import config
 
 class EnergyAIAnalysisService:
     """Energy resource AI analysis service class"""
-    
+
     def __init__(self):
         """Initialize energy AI analysis service"""
-        # Configure proxy and API key
-        config.setup_proxy()
-        config.setup_openai_key()
-        
-        self.client = OpenAI(
-            base_url=config.OPENAI_BASE_URL,
-            api_key=config.OPENAI_API_KEY
+        # Proxy and API key are read from environment; no global mutation here.
+        self.client = AsyncOpenAI(
+            base_url=os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+            api_key=os.environ.get('OPENAI_API_KEY', '')
         )
         self.model = "gpt-4o-2024-08-06"
         
@@ -147,8 +141,8 @@ Please use this geographic information for a more accurate energy resource analy
     async def _call_ai_analysis(self, image_url: str, prompt: str) -> Dict[str, Any]:
         """Call AI analysis API"""
         try:
-            # Call API using the official OpenAI SDK
-            response = self.client.chat.completions.create(
+            # Call API using AsyncOpenAI to avoid blocking the event loop
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
